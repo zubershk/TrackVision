@@ -36,7 +36,6 @@ export default defineConfig({
     }
   },
   optimizeDeps: {
-    include: ['onnxruntime-web'],
-    exclude: ['@huggingface/transformers']
+    include: ['onnxruntime-web']
   }
 });

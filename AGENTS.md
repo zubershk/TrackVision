@@ -13,7 +13,7 @@
 - Fully client-side; no env vars required (README's `VITE_HF_TOKEN`/`VITE_MODEL_CDN` are not read by any code).
 - Camera permission required for tracking; needs HTTPS or localhost.
 - Dev server sets COOP `same-origin` + COEP `require-corp` headers (vite.config) — required for SharedArrayBuffer/WebGPU. Prod equivalents live in `netlify.toml` / `vercel.json`; serving `dist/` any other way needs them set manually.
-- vite.config `optimizeDeps`: includes `onnxruntime-web`, excludes `@huggingface/transformers`.
+- vite.config `optimizeDeps`: includes `onnxruntime-web`.
 
 ## Architecture Overview
 - **Entry**: `App.tsx` renders `Landing` or `CommandCenter` based on `useVisionStore.mode` → `useVisionEngine.ts` (per-frame rAF loop) → detection + tracker workers.
@@ -24,7 +24,6 @@
 - **State**: two Zustand stores — `src/store.ts` (`useVisionStore`: tracking state, frames, telemetry) and `src/store/modelInitStore.ts` (`useModelInitStore`: boot/init overlay subsystem progress).
 
 ## Important Gotchas
-- **Legacy dead code**: `hooks/useOpenVision.ts` + `workers/openVisionWorker.ts` (OwlViT via `@huggingface/transformers`) are unused by the live pipeline — open mode is YOLO-World. Don't edit these to change behavior.
 - **ReID is initialized but not wired**: `useVisionEngine` destructures `extractBatch` from `useReIDWorker` but never calls it — detections carry no embeddings, so tracker matching uses only IoU + center distance + class cost (the no-embedding branch in `ByteTracker.matchDetections`).
 - **Tracker thresholds differ from README**: engine initializes with `trackThresh = Math.min(confidenceThreshold, 0.4)` (hard cap at 0.4), `matchThresh = 0.7` (max matching cost), `maxTimeLost = 30`. Confirmation requires `hits >= 3` OR two detections scoring ≥ 0.7 (`confirmedHits >= 2`) — see `Track.update` in `lib/tracker.ts`.
 - **Worker protocol**: init timeout 60 s; detect timeouts (8–10 s) resolve gracefully with empty results instead of throwing. Frame `ArrayBuffer`s are transferred per DETECT call (detached afterward — capture produces fresh buffers).

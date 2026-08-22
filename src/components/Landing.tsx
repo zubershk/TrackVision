@@ -1,34 +1,62 @@
 import React from 'react';
-import { useVisionStore } from '../store';
-import { MonitorPlay, ArrowRight } from 'lucide-react';
+import { LandingNav } from './landing/LandingNav';
+import { HeroSection } from './landing/HeroSection';
+import { SocialProofMarquee } from './landing/SocialProofMarquee';
+import { FeatureGrid } from './landing/FeatureGrid';
+import { ArchitecturePipeline } from './landing/ArchitecturePipeline';
+import { OpenVisionPlayground } from './landing/OpenVisionPlayground';
+import { PerformanceComparison } from './landing/PerformanceComparison';
+import { RoiCalculator } from './landing/RoiCalculator';
+import { UseCasesSection } from './landing/UseCasesSection';
+import { CodeQuickstart } from './landing/CodeQuickstart';
+import { FaqSection } from './landing/FaqSection';
+import { CtaBanner } from './landing/CtaBanner';
+import { LandingFooter } from './landing/LandingFooter';
 
 export function Landing() {
-  const setMode = useVisionStore(s => s.setMode);
-
   return (
-    <div className="flex-1 bg-[#000000] flex flex-col items-center justify-center p-8 relative overflow-hidden">
-      {/* Background Elements - Minimalist */}
-      <div className="absolute inset-0 bg-[radial-gradient(ellipse_at_center,_var(--tw-gradient-stops))] from-[#050505] via-[#000000] to-[#000000]" />
-      
-      <div className="relative z-10 max-w-2xl w-full text-center flex flex-col items-center">
-        <MonitorPlay className="w-16 h-16 text-[#F5F5F5] mb-8 font-light" strokeWidth={1} />
-        
-        <h1 className="text-4xl md:text-5xl font-medium tracking-tight text-[#F5F5F5] mb-4 font-sans">
-          TrackVision
-        </h1>
-        
-        <p className="text-[#B8B8B8] text-sm md:text-base font-mono uppercase tracking-widest mb-12">
-          Precision Object Intelligence
-        </p>
+    <div className="w-full min-h-screen bg-[#000000] text-[#F5F5F5] font-sans selection:bg-white/20 selection:text-white relative overflow-x-hidden">
+      {/* Floating Liquid-Glass Navigation */}
+      <LandingNav />
 
-        <button 
-          onClick={() => setMode('app')}
-          className="group bg-[#F5F5F5] hover:bg-[#D4D4D4] text-[#000000] px-8 py-3 rounded-sm font-medium tracking-wide transition-all flex items-center gap-3 text-sm"
-        >
-          Start Tracking
-          <ArrowRight className="w-4 h-4 group-hover:translate-x-1 transition-transform" />
-        </button>
-      </div>
+      {/* Main Content Stream */}
+      <main className="w-full flex flex-col">
+        {/* 1. Hero Section with Live 60 FPS Interactive Tracking HUD Simulator */}
+        <HeroSection />
+
+        {/* 2. Open Neural & Web Standards Marquee */}
+        <SocialProofMarquee />
+
+        {/* 3. Core Capabilities & Value Grid with Cursor Spotlight Lighting */}
+        <FeatureGrid />
+
+        {/* 4. Multi-Worker Pipeline & Architecture Visualizer */}
+        <ArchitecturePipeline />
+
+        {/* 5. Open-Vocabulary Prompt Conditioning Playground */}
+        <OpenVisionPlayground />
+
+        {/* 6. Edge In-Browser Performance & Benchmarks */}
+        <PerformanceComparison />
+
+        {/* 7. Interactive Cloud Cost & Bandwidth Savings Calculator */}
+        <RoiCalculator />
+
+        {/* 8. Real-World Applications & Use Cases */}
+        <UseCasesSection />
+
+        {/* 9. Developer Quickstart & Model Specs */}
+        <CodeQuickstart />
+
+        {/* 10. Technical Architecture FAQs */}
+        <FaqSection />
+
+        {/* 11. High-Converting Bottom CTA Banner */}
+        <CtaBanner />
+      </main>
+
+      {/* High-Tech Liquid-Glass Footer */}
+      <LandingFooter />
     </div>
   );
 }

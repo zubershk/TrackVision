@@ -36,8 +36,7 @@ async function initModel(modelConfig: YOLOConfig): Promise<void> {
   const candidateUrls = [
     modelConfig.modelUrl,
     '/models/yolov8n.onnx',
-    'https://huggingface.co/onnx-community/yolov8n/resolve/main/onnx/model.onnx',
-    'https://raw.githubusercontent.com/onnx/models/main/vision/object_detection_segmentation/yolov8/yolov8n.onnx'
+    'https://github.com/CVHub520/X-AnyLabeling/releases/download/v0.1.0/yolov8n.onnx'
   ].filter(Boolean) as string[];
 
   // Remove duplicates

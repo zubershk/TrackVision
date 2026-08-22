@@ -47,7 +47,7 @@ function downloadFile(url, dest) {
     const client = url.startsWith('https:') ? https : http;
     const file = fs.createWriteStream(dest);
     
-    const request = client.get(url, (response) => {
+    const request = client.get(url, { headers: { 'User-Agent': 'Mozilla/5.0 (Windows NT 10.0; Win64; x64)' } }, (response) => {
       // Handle redirects
       if (response.statusCode === 302 || response.statusCode === 301 || response.statusCode === 307 || response.statusCode === 308) {
         const redirectUrl = response.headers.location;

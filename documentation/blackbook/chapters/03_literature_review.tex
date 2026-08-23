@@ -61,7 +61,7 @@ Traditional detectors are limited to fixed training vocabularies (e.g., COCO-80)
 \section{OSNet: Omni-Scale Network for ReID}
 \label{sec:osnet}
 
-\textbf{OSNet} \cite{zhou2019osnet} is a lightweight CNN for person re-identification. Its Omni-Scale residual block captures features at multiple spatial scales simultaneously. OSNet x1.0 ($\sim$2.2M parameters) produces 512-dim embeddings and achieves strong accuracy on Market-1501 / DukeMTMC-reID. The ONNX export (Axelera mirror) expects 256×128 crops with ImageNet normalization.
+\textbf{OSNet} \cite{zhou2019osnet} is a lightweight CNN for person re-identification. Its Omni-Scale residual block captures features at multiple spatial scales simultaneously. OSNet x1.0 ($\sim$2.2M parameters) produces 512-dim embeddings and achieves strong accuracy on Market-1501 / DukeMTMC-reID. The ONNX export (Axelera mirror) expects 256x128 crops with ImageNet normalization.
 
 \section{Kalman Filter in Visual Tracking}
 \label{sec:kf-tracking}
@@ -70,7 +70,7 @@ The Kalman filter \cite{kalman1960new} is the workhorse of MOT state estimation.
 \[
 \mathbf{x} = [x, y, v_x, v_y, w, h]^T
 \]
-The constant velocity model assumes $x_{t+1} = x_t + v_x \Delta t$. Process noise models acceleration uncertainty; measurement noise models detection jitter. Full covariance (6×6) propagation captures correlations between state variables (e.g., position-velocity coupling).
+The constant velocity model assumes $x_{t+1} = x_t + v_x \Delta t$. Process noise models acceleration uncertainty; measurement noise models detection jitter. Full covariance (6x6) propagation captures correlations between state variables (e.g., position-velocity coupling).
 
 \section{Hungarian Algorithm for Data Association}
 \label{sec:hungarian}
@@ -114,7 +114,7 @@ StrongSORT \cite{du2023strongsort} & IoU + App + Hungarian & \cmark (OSNet-AIN) 
 \label{sec:theoretical-vs-implemented}
 
 \begin{itemize}
-    \item \textbf{Implemented in TrackVision:} ByteTrack two-stage association, full 6×6 covariance Kalman, Hungarian assignment, OSNet ReID with EMA fusion, track merging, EMA smoothing, occlusion interpolation, YOLOv8n detection, YOLO-World + CLIP open-vocabulary path.
+    \item \textbf{Implemented in TrackVision:} ByteTrack two-stage association, full 6x6 covariance Kalman, Hungarian assignment, OSNet ReID with EMA fusion, track merging, EMA smoothing, occlusion interpolation, YOLOv8n detection, YOLO-World + CLIP open-vocabulary path.
     \item \textbf{Literature only (not implemented):} BoT-SORT (CMC), StrongSORT (adaptive appearance), Deep SORT (original ReID), OC-SORT \cite{cao2023ocsort}, MotionTrack \cite{chen2023motiontrack}, TransTrack \cite{sun2020transtrack}.
     \item \textbf{Adapted for browser:} Kalman filter (TypeScript, Gaussian elimination), Hungarian (TypeScript, square padding), OSNet (batch-1 inference due to export constraints), CLIP tokenizer (BPE in TypeScript).
 \end{itemize}

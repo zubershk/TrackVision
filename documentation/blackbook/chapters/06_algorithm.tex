@@ -6,7 +6,7 @@
 
 This chapter presents the core algorithms implemented in TrackVision: the Kalman filter, Hungarian assignment, ByteTrack++ association pipeline, and ReID fusion. All algorithms are transcribed directly from the TypeScript implementation.
 
-\section{Kalman Filter (Full 6×6 Covariance)}
+\section{Kalman Filter (Full 6x6 Covariance)}
 \label{sec:kf-alg}
 
 The Kalman filter maintains a state vector $\mathbf{x} \in \mathbb{R}^6$ and covariance matrix $\mathbf{P} \in \mathbb{R}^{6 \times 6}$.
@@ -78,7 +78,7 @@ State update: $\mathbf{x}_{k|k} = \mathbf{x}_{k|k-1} + \mathbf{K}\mathbf{y}$
 Covariance update: $\mathbf{P}_{k|k} = (\mathbf{I} - \mathbf{K}\mathbf{H})\mathbf{P}_{k|k-1}$
 
 \subsection{Matrix Inversion}
-$\mathbf{S}^{-1}$ is computed via Gaussian elimination (6×6) in \texttt{KalmanFilter.matrixInverse()}. If singular, identity is returned as fallback.
+$\mathbf{S}^{-1}$ is computed via Gaussian elimination (6x6) in \texttt{KalmanFilter.matrixInverse()}. If singular, identity is returned as fallback.
 
 \section{Hungarian Algorithm (Kuhn-Munkres)}
 \label{sec:hungarian-alg}
@@ -211,13 +211,18 @@ During track merging (same class, IoU > 0.5, app sim > 0.7), the older track abs
 \label{sec:lifecycle-alg}
 
 \begin{center}
-\begin{tikzpicture}[node distance=2.5cm, auto]
+\begin{tikzpicture}[
+    node distance=2.2cm,
+    auto,
+    state/.style={ellipse, draw=trackvisionblue, thick, minimum width=2cm, minimum height=1cm, text centered, font=\small, fill=white},
+    arrow/.style={->, thick, >=Stealth, trackvisionblue}
+]
     \node[state, initial] (tent) {TENTATIVE};
     \node[state] (conf) [right of=tent] {CONFIRMED};
     \node[state] (lost) [right of=conf] {LOST};
     \node[state] (rem) [right of=lost] {REMOVED};
 
-    \path[->] (tent) edge[bend left] node[above] {hits $\ge$ 3 $\lor$ confirmedHits $\ge$ 2} (conf)
+    \path[arrow] (tent) edge[bend left] node[above] {hits $\ge$ 3 $\lor$ confirmedHits $\ge$ 2} (conf)
               (conf) edge[bend left] node[above] {timeSinceUpdate > 5} (lost)
               (lost) edge[bend left] node[above] {timeSinceUpdate > 30} (rem)
               (lost) edge[bend left=60] node[below] {re-associated} (conf)
@@ -289,10 +294,10 @@ During track merging (same class, IoU > 0.5, app sim > 0.7), the older track abs
 \toprule
 \textbf{Component} & \textbf{Complexity} \\
 \midrule
-YOLOv8n Inference & $O(1)$ (fixed 640×640 input, model-dependent) \\
+YOLOv8n Inference & $O(1)$ (fixed 640x640 input, model-dependent) \\
 Class-Aware NMS & $O(N \log N)$ per class ($N$ = detections) \\
-OSNet ReID (per crop) & $O(1)$ (fixed 256×128, sequential batch-1) \\
-Kalman Predict/Update & $O(1)$ per track (6×6 matrix ops) \\
+OSNet ReID (per crop) & $O(1)$ (fixed 256x128, sequential batch-1) \\
+Kalman Predict/Update & $O(1)$ per track (6x6 matrix ops) \\
 Hungarian Assignment & $O((T+D)^3)$ ($T$ tracks, $D$ detections) \\
 Track Merging & $O(T^2)$ pairwise IoU \\
 EMA Smoothing & $O(T)$ \\
@@ -300,4 +305,4 @@ EMA Smoothing & $O(T)$ \\
 \end{tabular}
 \end{table}
 
-Practical bottleneck: \textbf{Model inference} (YOLO/OSNet/CLIP) dominates frame time. JS-side tracking pipeline: \textbf{0.31–1.04 ms/frame} at 5–20 detections (Vitest benchmark, Node 22).
+Practical bottleneck: \textbf{Model inference} (YOLO/OSNet/CLIP) dominates frame time. JS-side tracking pipeline: \textbf{0.31--1.04 ms/frame} at 5--20 detections (Vitest benchmark, Node 22).

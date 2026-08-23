@@ -21,7 +21,7 @@ TrackVision accepts two input modalities:
     \item \textbf{User-Provided Video Files:} The application supports drag-and-drop or file selection of browser-compatible video formats (MP4, WebM, MOV, etc.). The \texttt{<video>} element loads the file via \texttt{URL.createObjectURL()}.
 \end{enumerate}
 
-Both sources feed into the same processing pipeline (Figure~\ref{fig:pipeline}).
+Both sources feed into the same processing pipeline.
 
 \section{Video Characteristics}
 \label{sec:video-characteristics}
@@ -36,7 +36,7 @@ Since the input is user-dependent, the following parameters are \textit{not fixe
 \toprule
 \textbf{Parameter} & \textbf{Handling} \\
 \midrule
-Resolution & Variable (camera: up to 1280×720; file: any); letterboxed to 640×640 internally \\
+Resolution & Variable (camera: up to 1280x720; file: any); letterboxed to 640x640 internally \\
 Frame Rate & Variable (typically 30 FPS); tracker assumes $\Delta t = 1/30$ s \\
 Color Space & RGB (browser canvas); converted to CHW float32 for inference \\
 Aspect Ratio & Preserved via letterboxing (padding); scale/offset metadata retained \\
@@ -53,7 +53,7 @@ Every frame undergoes the following deterministic preprocessing before inference
 \begin{enumerate}
     \item \textbf{Capture:} \texttt{OffscreenCanvas.drawImage(video, 0, 0, 640, 640)} with letterboxing (aspect-preserving fit with padding).
     \item \textbf{Metadata:} The capture returns \texttt{scale} (min(640/w, 640/h)), \texttt{offsetX}, \texttt{offsetY} (padding offsets).
-    \item \textbf{Planar Conversion:} RGBA $\to$ float32 CHW (3 × 640 × 640), normalized by 1/255.
+    \item \textbf{Planar Conversion:} RGBA $\to$ float32 CHW (3 x 640 x 640), normalized by 1/255.
     \item \textbf{Buffer Transfer:} \texttt{ArrayBuffer} transferred to Web Workers (detached, zero-copy).
 \end{enumerate}
 
@@ -80,7 +80,7 @@ During manual development and qualitative testing, the following video sources w
 \begin{itemize}
     \item Live webcam (laptop integrated camera, USB webcam).
     \item Mobile phone camera (via \texttt{dev:https} LAN access).
-    \item Sample video: \texttt{one-by-one-person-detection.mp4} (Intel IoT DevKit sample, $\sim$3.3 MB, 1920×1080, 30 FPS, single person walking).
+    \item Sample video: \texttt{one-by-one-person-detection.mp4} (Intel IoT DevKit sample, ~3.3 MB, 1920x1080, 30 FPS, single person walking).
 \end{itemize}
 
 These are \textbf{not benchmark datasets} and were used solely for functional verification and UI testing.
@@ -99,7 +99,7 @@ These are \textbf{not benchmark datasets} and were used solely for functional ve
 Dataset Name & \textit{None (live camera / user video only)} \\
 Source & Browser \texttt{getUserMedia()} / File input \\
 Video Count & Unlimited (user-dependent) \\
-Resolution & Variable; processed at 640×640 letterboxed \\
+Resolution & Variable; processed at 640x640 letterboxed \\
 FPS & Variable; tracker $\Delta t = 1/30$ s \\
 Object Classes & COCO-80 (fast) / User-defined (open) \\
 Annotation Format & None (inference only) \\

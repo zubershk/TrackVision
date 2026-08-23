@@ -49,7 +49,7 @@ Zustand Store History (\texttt{store.test.ts}) & 5 \\
 \begin{itemize}
     \item \textbf{Kalman:} Predict/update correctness, covariance propagation, matrix inversion, velocity clamping, state reset.
     \item \textbf{Matching:} Hungarian optimal assignment, gating, rectangular padding, greedy fallback, edge cases (empty inputs).
-    \item \textbf{ByteTrack:} TENTATIVE$\to$CONFIRMED$\to$LOST$\to$REMOVED transitions, confirmation thresholds (hits$\geq$3 or confirmedHits$\geq$2), occlusion recovery (re-association after 3 missed frames), ID persistence during smooth motion, separate IDs for spatially distinct objects, low-score detection handling, label stabilization via majority vote.
+    \item \textbf{ByteTrack:} TENTATIVE$\to$CONFIRMED$\to$LOST$\to$REMOVED transitions, confirmation thresholds (hits$\ge$3 or confirmedHits$\ge$2), occlusion recovery (re-association after 3 missed frames), ID persistence during smooth motion, separate IDs for spatially distinct objects, low-score detection handling, label stabilization via majority vote.
     \item \textbf{Appearance Fusion:} EMA blending ($\alpha$=0.3) with L2 re-normalization, crossing disambiguation when IoU ambiguous (appearance-dominant tuning).
     \item \textbf{Store:} 5-minute rolling window frame pruning, track metadata persistence, event logging.
 \end{itemize}
@@ -172,7 +172,7 @@ ONNX Runtime WASM (\texttt{ort-wasm-simd-threaded.jsep.wasm}) & 26.2 MB \\
 Manual testing with live camera and sample video (\texttt{one-by-one-person-detection.mp4}) observed:
 
 \begin{itemize}
-    \item \textbf{Identity Continuity:} Tracks maintain stable IDs during smooth motion; re-association succeeds after brief occlusion ($\leq$ 5 frames).
+    \item \textbf{Identity Continuity:} Tracks maintain stable IDs during smooth motion; re-association succeeds after brief occlusion ($\le$ 5 frames).
     \item \textbf{Occlusion Handling:} Kalman prediction interpolates up to 5 frames during occlusion; track status transitions TRACKED $\to$ LOST after 6 missed frames.
     \item \textbf{Track Merging:} When two tracks of same class overlap (IoU > 0.5) with high appearance similarity ($>$ 0.7), older track absorbs younger.
     \item \textbf{Label Stabilization:} Majority vote over 10-frame history corrects transient misclassifications.

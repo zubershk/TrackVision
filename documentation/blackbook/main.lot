@@ -2,23 +2,23 @@
 \addvspace {10\p@ }
 \addvspace {10\p@ }
 \addvspace {10\p@ }
-\contentsline {table}{\numberline {3.1}{\ignorespaces Comparison of MOT methods relevant to this work. \textbf {Bold} indicates methods implemented in TrackVision.}}{22}{table.caption.8}%
+\contentsline {table}{\numberline {3.1}{\ignorespaces Comparison of MOT methods relevant to this work. \textbf {Bold} indicates methods implemented in TrackVision.}}{21}{table.caption.4}%
 \addvspace {10\p@ }
-\contentsline {table}{\numberline {4.1}{\ignorespaces Input video parameter handling}}{25}{table.caption.9}%
-\contentsline {table}{\numberline {4.2}{\ignorespaces Dataset description summary}}{26}{table.caption.10}%
-\addvspace {10\p@ }
-\addvspace {10\p@ }
-\contentsline {table}{\numberline {6.1}{\ignorespaces Per-frame computational complexity (asymptotic)}}{40}{table.caption.11}%
+\contentsline {table}{\numberline {4.1}{\ignorespaces Input video parameter handling}}{24}{table.caption.5}%
+\contentsline {table}{\numberline {4.2}{\ignorespaces Dataset description summary}}{25}{table.caption.6}%
 \addvspace {10\p@ }
 \addvspace {10\p@ }
-\contentsline {table}{\numberline {8.1}{\ignorespaces Screenshot capture summary}}{47}{table.caption.32}%
+\contentsline {table}{\numberline {6.1}{\ignorespaces Per-frame computational complexity (asymptotic)}}{38}{table.caption.7}%
 \addvspace {10\p@ }
-\contentsline {table}{\numberline {9.1}{\ignorespaces Unit test coverage by module}}{55}{table.caption.33}%
-\contentsline {table}{\numberline {9.2}{\ignorespaces Tracking pipeline latency (JS only, no model inference)}}{56}{table.caption.34}%
-\contentsline {table}{\numberline {9.3}{\ignorespaces ONNX session initialization time (model load + compile)}}{56}{table.caption.36}%
-\contentsline {table}{\numberline {9.4}{\ignorespaces Production bundle sizes}}{57}{table.caption.37}%
-\contentsline {table}{\numberline {9.5}{\ignorespaces Recommended MOT metrics for future benchmark evaluation}}{58}{table.caption.38}%
-\contentsline {table}{\numberline {9.6}{\ignorespaces Summary of measured results (achieved)}}{59}{table.caption.39}%
 \addvspace {10\p@ }
-\contentsline {table}{\numberline {10.1}{\ignorespaces TrackVision deployment advantages for real-world applications}}{62}{table.caption.40}%
+\contentsline {table}{\numberline {8.1}{\ignorespaces Screenshot capture summary}}{45}{table.caption.28}%
+\addvspace {10\p@ }
+\contentsline {table}{\numberline {9.1}{\ignorespaces Unit test coverage by module}}{53}{table.caption.29}%
+\contentsline {table}{\numberline {9.2}{\ignorespaces Tracking pipeline latency (JS only, no model inference)}}{54}{table.caption.30}%
+\contentsline {table}{\numberline {9.3}{\ignorespaces ONNX session initialization time (model load + compile)}}{54}{table.caption.32}%
+\contentsline {table}{\numberline {9.4}{\ignorespaces Production bundle sizes}}{55}{table.caption.33}%
+\contentsline {table}{\numberline {9.5}{\ignorespaces Recommended MOT metrics for future benchmark evaluation}}{56}{table.caption.34}%
+\contentsline {table}{\numberline {9.6}{\ignorespaces Summary of measured results (achieved)}}{57}{table.caption.35}%
+\addvspace {10\p@ }
+\contentsline {table}{\numberline {10.1}{\ignorespaces TrackVision deployment advantages for real-world applications}}{60}{table.caption.36}%
 \addvspace {10\p@ }

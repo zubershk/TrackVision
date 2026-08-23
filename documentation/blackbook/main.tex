@@ -21,7 +21,7 @@
 \usepackage{amsfonts}
 \usepackage{mathtools}
 \usepackage{algorithm}
-\usepackage{algpseudocode}
+\usepackage[noend]{algpseudocode}
 \usepackage{tikz}
 \usepackage{pgfplots}
 \usepackage{pgfplotstable}
@@ -39,13 +39,15 @@
 \usepackage{textcomp}
 \usepackage{newunicodechar}
 \usepackage{etoolbox}
+% \usepackage{microtype} % causes font expansion issues
+\usepackage{ragged2e}
 
 % =====================================================================
 % UNICODE CHARACTER SUPPORT
 % =====================================================================
 \newunicodechar{✅}{\textbullet\ }
 \newunicodechar{⚠}{\textasteriskcentered\ }
-\newunicodechar{⚠️}{\textasteriskcentered\ }
+% \newunicodechar{⚠️}{\textasteriskcentered\ } % variation selector causes issues
 \newunicodechar{✓}{\textbullet}
 \newunicodechar{α}{\ensuremath{\alpha}}
 \newunicodechar{≥}{\ensuremath{\geq}}
@@ -76,8 +78,8 @@
 
 \usepackage{setspace}
 \setstretch{1.15}
-\setlength{\parindent}{1em}
-\setlength{\parskip}{0.3em}
+\setlength{\parindent}{1.2em}
+\setlength{\parskip}{0.4em}
 
 % =====================================================================
 % COLORS
@@ -93,7 +95,7 @@
 \definecolor{rowcolor}{RGB}{240, 245, 250}
 
 % =====================================================================
-% TITLE FORMATTING - SIMPLE, NO NESTED TITLES
+% TITLE FORMATTING - CLEAN, NO NESTED TITLES
 % =====================================================================
 \titleformat{\chapter}[display]
     {\normalfont\Large\bfseries\color{trackvisiondark}}
@@ -115,11 +117,11 @@
     {\thesubsubsection}{0.6em}{}
 
 % =====================================================================
-% LISTINGS CONFIGURATION - WITH JAVASCRIPT/TYPESCRIPT SUPPORT
+% LISTINGS CONFIGURATION - TYPESCRIPT SUPPORT
 % =====================================================================
 \usepackage{listings}
 \lstdefinelanguage{TypeScript}{
-    morekeywords={abstract, as, async, await, boolean, break, case, catch, class, const, continue, debugger, declare, default, delete, do, else, enum, export, extends, false, finally, for, from, function, get, if, implements, import, in, instanceof, interface, let, module, namespace, never, new, null, number, of, package, private, protected, public, readonly, return, set, static, string, super, switch, symbol, this, throw, true, try, type, typeof, undefined, var, void, while, with, yield, async, await, of, type, keyof, infer, unknown, any, never, bigint, constructor, static, get, set, infer, keyof, declare, declare, type, interface, enum, implements, extends, public, private, protected, readonly, abstract, override, static, async, await},
+    morekeywords={abstract, as, async, await, boolean, break, case, catch, class, const, continue, debugger, declare, default, delete, do, else, enum, export, extends, false, finally, for, from, function, get, if, implements, import, in, instanceof, interface, let, module, namespace, never, new, null, number, of, package, private, protected, public, readonly, return, set, static, string, super, switch, symbol, this, throw, true, try, type, typeof, undefined, var, void, while, with, yield, async, await, of, type, keyof, infer, unknown, any, never, bigint, constructor, static, get, set, infer, keyof, declare, type, interface, enum, implements, extends, public, private, protected, readonly, abstract, override, static, async, await},
     sensitive=true,
     morecomment=[l]{//},
     morecomment=[s]{/*}{*/},
@@ -241,8 +243,6 @@
 \newcommand{\wasm}{WASM}
 \newcommand{\webnn}{WebNN}
 \newcommand{\webgl}{WebGL}
-\newcommand{\e}{\ensuremath{\epsilon}}
-\newcommand{\R}{\mathbb{R}}
 
 % =====================================================================
 % ACRONYMS

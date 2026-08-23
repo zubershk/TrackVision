@@ -90,7 +90,7 @@ for (let i = 0, p = 0; i < numPixels; i++, p += 4) {
 }
 \end{lstlisting}
 
-For ReID (OSNet), crops are extracted from the letterboxed frame, resized to 256×128, and normalized with ImageNet statistics (mean=[0.485, 0.456, 0.406], std=[0.229, 0.224, 0.225]).
+For ReID (OSNet), crops are extracted from the letterboxed frame, resized to 256x128, and normalized with ImageNet statistics (mean=[0.485, 0.456, 0.406], std=[0.229, 0.224, 0.225]).
 
 \section{Object Detection}
 \label{sec:detection}
@@ -137,12 +137,12 @@ This prevents cross-class suppression (e.g., a high-confidence ``person'' does n
 \section{ReID Feature Extraction}
 \label{sec:reid}
 
-ReID is \textbf{conditional} — only active when a valid OSNet model is loaded (\texttt{reidReady \&\& !reidIsFallback}).
+ReID is \textbf{conditional} -- only active when a valid OSNet model is loaded (\texttt{reidReady \&\& !reidIsFallback}).
 
 \begin{enumerate}
     \item \textbf{Crop Mapping:} Video-space boxes $\to$ letterbox coordinates using \texttt{scale/offsetX/offsetY}.
     \item \textbf{Batch-1 Inference:} Each crop processed sequentially (OSNet export rejects stacked batches).
-    \item \textbf{Preprocessing:} Resize 256×128, ImageNet mean/std, RGB $\to$ CHW.
+    \item \textbf{Preprocessing:} Resize 256x128, ImageNet mean/std, RGB $\to$ CHW.
     \item \textbf{Inference:} \texttt{extractBatch} in \texttt{reidWorker.ts} returns 512-dim L2-normalized embedding per crop.
     \item \textbf{Attachment:} Non-zero embeddings attached to detections if length matches.
 \end{enumerate}
@@ -162,7 +162,7 @@ predict(): BBox {
 }
 \end{lstlisting}
 
-The Kalman filter (\texttt{kalman.ts}) maintains a 6×6 covariance matrix with constant acceleration process noise.
+The Kalman filter (\texttt{kalman.ts}) maintains a 6x6 covariance matrix with constant acceleration process noise.
 
 \section{Data Association}
 \label{sec:association}
@@ -212,7 +212,7 @@ Tracks transition through states:
 \begin{itemize}
     \item \texttt{confirmedHits}: detections with $\text{score} \ge 0.7$
     \item Recovery: LOST $\to$ TRACKED if re-associated within \texttt{maxTimeLost}
-    \item Label stabilization: Majority vote over last 10 class labels
+    \item Label stabilization: Majority vote over 10 class labels
     \item Score smoothing: EMA $\alpha=0.3$ ($\text{score} \leftarrow 0.7 \cdot \text{old} + 0.3 \cdot \text{new}$)
 \end{itemize}
 
@@ -239,7 +239,7 @@ The main thread renders tracking overlays on a canvas (\texttt{drawTrackingHUD} 
     \item Bounding boxes with track IDs, class labels, confidence.
     \item Ghost mode: Fading trajectory trails (15 frames, opacity decay).
     \item Follow mode: Camera locked to selected track, dimmed background.
-    \item Scene Map: 640×480 top-down density map with live track dots.
+    \item Scene Map: 640x480 top-down density map with live track dots.
     \item Timeline: Gantt-chart horizontal bars per track ID (5-min window).
 \end{itemize}
 

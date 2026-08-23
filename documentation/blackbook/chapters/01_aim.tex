@@ -17,7 +17,7 @@ The aim of this project is to \textbf{design, implement, and evaluate a real-tim
     
     \item \textbf{Custom ByteTrack++ tracker:} Implement a tracking-by-detection algorithm with:
     \begin{itemize}
-        \item Full 6×6 covariance Kalman filter (constant acceleration model)
+        \item Full 6x6 covariance Kalman filter (constant acceleration model)
         \item Hungarian algorithm for optimal data association
         \item Track lifecycle management (TENTATIVE $\to$ CONFIRMED $\to$ LOST $\to$ REMOVED)
         \item Appearance-based re-identification via OSNet x1.0 (512-dim embeddings)
@@ -25,7 +25,7 @@ The aim of this project is to \textbf{design, implement, and evaluate a real-tim
         \item EMA bounding-box smoothing ($\alpha=0.7$) and occlusion interpolation (up to 5 frames)
     \end{itemize}
     
-    \item \textbf{Browser-native video acquisition:} Capture live camera feed via \texttt{getUserMedia()} and process frames using \texttt{OffscreenCanvas} at 640×640 letterboxed resolution with zero-copy buffer transfer to workers.
+    \item \textbf{Browser-native video acquisition:} Capture live camera feed via \texttt{getUserMedia()} and process frames using \texttt{OffscreenCanvas} at 640x640 letterboxed resolution with zero-copy buffer transfer to workers.
     
     \item \textbf{Real-time telemetry and history:} Provide per-frame latency breakdown (preprocess, inference, postprocess, tracking, render), FPS monitoring, 5-minute rolling history with frame-perfect replay, and persistent track metadata (trajectories, distance, speed, bearing).
     

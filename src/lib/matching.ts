@@ -1,4 +1,6 @@
-export type BBox = [number, number, number, number];
+import type { BBox } from '../types';
+
+export type { BBox };
 
 export function getIoU(box1: BBox, box2: BBox): number {
   const [x1, y1, w1, h1] = box1;

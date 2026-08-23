@@ -1,4 +1,4 @@
-import React, { useRef, useEffect } from 'react';
+import React, { useRef, useEffect, useState } from 'react';
 import { useVisionStore } from '../store';
 import { useVisionEngine } from '../hooks/useVisionEngine';
 import { drawTrackingHUD } from '../lib/draw';
@@ -12,6 +12,7 @@ export function CameraHUD() {
   const videoRef = useRef<HTMLVideoElement>(null);
   const canvasRef = useRef<HTMLCanvasElement>(null);
   const renderRef = useRef<number | null>(null);
+  const [cameraError, setCameraError] = useState('');
 
   const { isModelLoading, modelError } = useVisionEngine(videoRef);
 
@@ -50,12 +51,21 @@ export function CameraHUD() {
         video: { facingMode: 'environment', width: { ideal: 1280 }, height: { ideal: 720 } },
         audio: false,
       }).then(stream => {
+        setCameraError('');
         if (videoRef.current) {
           videoRef.current.srcObject = stream;
           videoRef.current.onloadedmetadata = () => videoRef.current?.play();
         }
       }).catch(err => {
         console.error(err);
+        const isSecure = window.isSecureContext;
+        setCameraError(
+          !isSecure
+            ? 'Camera blocked: this page is not served over HTTPS. On a phone, use the LAN HTTPS URL (npm run dev:https) and accept the self-signed certificate.'
+            : err.name === 'NotAllowedError'
+              ? 'Camera permission denied. Allow camera access in your browser settings and try again.'
+              : `Camera unavailable: ${err.message || err.name}`
+        );
       });
     }
 
@@ -185,6 +195,17 @@ export function CameraHUD() {
             <p className="text-sm glass-text-muted font-sans max-w-sm">
               Check your browser permissions and try again.
             </p>
+          </div>
+        )}
+
+        {cameraError && !modelError && (
+          <div className="absolute inset-x-0 top-14 z-30 flex justify-center px-4">
+            <div className="glass-panel border border-amber-500/30 rounded-lg px-4 py-3 max-w-md text-center">
+              <div className="flex items-start gap-2.5">
+                <AlertTriangle className="w-4 h-4 text-amber-400 shrink-0 mt-0.5" strokeWidth={1.5} />
+                <p className="text-xs glass-text-muted text-left leading-relaxed">{cameraError}</p>
+              </div>
+            </div>
           </div>
         )}
 

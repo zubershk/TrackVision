@@ -1,12 +1,8 @@
-export type BBox = [number, number, number, number];
+import type { BBox, Detection } from '../types';
+import { KalmanFilter } from './kalman';
+import { getIoU, hungarianMatch, MatchResult } from './matching';
 
-export interface Detection {
-  bbox: BBox;
-  score: number;
-  class: string;
-  classId: number;
-  embedding?: Float32Array;
-}
+export type { BBox, Detection };
 
 export enum TrackState {
   TENTATIVE = 0,
@@ -264,9 +260,6 @@ export class Track {
     return this.status;
   }
 }
-
-import { KalmanFilter } from './kalman';
-import { getIoU, hungarianMatch, MatchResult } from './matching';
 
 export class ByteTracker {
   tracks: Track[] = [];

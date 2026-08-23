@@ -1,4 +1,6 @@
-export type BBox = [number, number, number, number];
+import type { BBox } from '../types';
+
+export type { BBox };
 
 export interface KalmanState {
   x: number;
@@ -270,8 +272,8 @@ export class KalmanFilter {
           }
         }
       }
-      
-      return aug.map(row => row.slice(n));
+    }
+
+    return aug.map(row => row.slice(n));
   }
-}
 }

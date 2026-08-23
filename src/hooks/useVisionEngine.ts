@@ -6,32 +6,21 @@ import { useYOLOWorldWorker } from './useYOLOWorker';
 import { useReIDWorker } from './useReIDWorker';
 import { useTrackerWorker } from './useTrackerWorker';
 import { useOffscreenCanvas } from './useOffscreenCanvas';
-import { getIoU } from '../lib/matching';
+import { applyNMSWithClass } from '../workers/workerUtils';
 import { useModelInitStore } from '../store/modelInitStore';
 
-function applyClassAwareNMS(detections: Detection[], iouThreshold: number = 0.45): Detection[] {
-  const byClass = new Map<string, Detection[]>();
-  for (const det of detections) {
-    const arr = byClass.get(det.class) || [];
-    arr.push(det);
-    byClass.set(det.class, arr);
-  }
+const TRACKER_CONFIG = {
+  matchThresh: 0.7,
+  maxTimeLost: 30,
+  useHungarian: true,
+  embeddingWeight: 0.3
+};
 
-  const finalDetections: Detection[] = [];
-  for (const [, classDets] of byClass) {
-    const sorted = [...classDets].sort((a, b) => b.score - a.score);
-    for (const det of sorted) {
-      let keep = true;
-      for (const finalDet of finalDetections) {
-        if (finalDet.class === det.class && getIoU(det.bbox, finalDet.bbox) > iouThreshold) {
-          keep = false;
-          break;
-        }
-      }
-      if (keep) finalDetections.push(det);
-    }
+function hasNonZeroValues(embedding: Float32Array): boolean {
+  for (let i = 0; i < embedding.length; i++) {
+    if (embedding[i] !== 0) return true;
   }
-  return finalDetections;
+  return false;
 }
 
 export function useVisionEngine(videoRef: React.RefObject<HTMLVideoElement | null>) {
@@ -62,7 +51,7 @@ export function useVisionEngine(videoRef: React.RefObject<HTMLVideoElement | nul
     setConcepts: setYOLOWorldConcepts 
   } = useYOLOWorldWorker('/models/yoloworld.onnx');
   
-  const { extractBatch, ready: reidReady } = useReIDWorker();
+  const { extractBatch, ready: reidReady, isFallback: reidIsFallback } = useReIDWorker();
   const { ready: canvasReady, captureFrame } = useOffscreenCanvas(videoRef);
   const { initialize: initTracker, update: updateTracker, reset: resetTracker } = useTrackerWorker();
   const isDetectingRef = useRef(false);
@@ -101,11 +90,8 @@ export function useVisionEngine(videoRef: React.RefObject<HTMLVideoElement | nul
           message: 'Configuring tracker parameters...'
         });
         await initTracker({
-          trackThresh: Math.min(confidenceThreshold, 0.4),
-          matchThresh: 0.7,
-          maxTimeLost: 30,
-          useHungarian: true,
-          embeddingWeight: 0.3
+          ...TRACKER_CONFIG,
+          trackThresh: Math.min(confidenceThreshold, 0.4)
         });
         trackerInitializedRef.current = true;
         setIsModelLoading(false);
@@ -129,7 +115,7 @@ export function useVisionEngine(videoRef: React.RefObject<HTMLVideoElement | nul
 
   useEffect(() => {
     if (trackerInitializedRef.current) {
-      initTracker({ trackThresh: Math.min(confidenceThreshold, 0.4), matchThresh: 0.7 });
+      initTracker({ ...TRACKER_CONFIG, trackThresh: Math.min(confidenceThreshold, 0.4) });
     }
   }, [confidenceThreshold, initTracker]);
 
@@ -170,6 +156,11 @@ export function useVisionEngine(videoRef: React.RefObject<HTMLVideoElement | nul
 
     isDetectingRef.current = true;
     const frameStart = performance.now();
+
+    const imageDataForReID = (reidReady && !reidIsFallback)
+      ? new ImageData(frame.data.slice(), frame.width, frame.height)
+      : null;
+
     let detections: Detection[] = [];
     let inferenceMs = 0;
     let preprocessMs = 0;
@@ -188,7 +179,7 @@ export function useVisionEngine(videoRef: React.RefObject<HTMLVideoElement | nul
         detections = result.results;
       } else {
         const result = await yoloWorldDetect(
-          frame as any, 
+          frame,
           confidenceThreshold
         );
         inferenceMs = result.inferenceMs;
@@ -199,10 +190,32 @@ export function useVisionEngine(videoRef: React.RefObject<HTMLVideoElement | nul
         detections = result.results;
       }
 
-      detections = applyClassAwareNMS(detections);
+      detections = applyNMSWithClass(detections, 0.45);
+
+      if (detections.length > 0 && imageDataForReID) {
+        try {
+          const boxes = detections.map((d): [number, number, number, number] => [
+            d.bbox[0] * frame.scale + frame.offsetX,
+            d.bbox[1] * frame.scale + frame.offsetY,
+            d.bbox[2] * frame.scale,
+            d.bbox[3] * frame.scale
+          ]);
+          const embeddings = await extractBatch(imageDataForReID, boxes);
+          if (embeddings.length === detections.length) {
+            for (let i = 0; i < detections.length; i++) {
+              const emb = embeddings[i];
+              if (emb && emb.length > 0 && hasNonZeroValues(emb)) {
+                detections[i].embedding = emb;
+              }
+            }
+          }
+        } catch (reidErr) {
+          console.warn('[useVisionEngine] ReID embedding extraction skipped:', reidErr);
+        }
+      }
 
       const trackingStart = performance.now();
-      const activeTracks = await updateTracker(detections);
+      const activeTracks = (await updateTracker(detections)) ?? [];
       const trackingMs = performance.now() - trackingStart;
 
       frameCountRef.current++;
@@ -279,7 +292,7 @@ export function useVisionEngine(videoRef: React.RefObject<HTMLVideoElement | nul
         requestRef.current = requestAnimationFrame(processFrame);
       }
     }
-  }, [videoRef, sessionStartTime, addFrameData, yoloDetect, yoloWorldDetect, updateTracker, yoloReady, yoloWorldReady, captureFrame, confidenceThreshold]);
+  }, [videoRef, sessionStartTime, addFrameData, yoloDetect, yoloWorldDetect, updateTracker, yoloReady, yoloWorldReady, captureFrame, confidenceThreshold, extractBatch, reidReady, reidIsFallback]);
 
   useEffect(() => {
     if (isTracking && !isReplay && (visionMode === 'fast' ? yoloReady : yoloWorldReady)) {

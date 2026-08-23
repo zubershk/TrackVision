@@ -8,6 +8,8 @@ export function VisionPanel() {
   const setVisionMode = useVisionStore(s => s.setVisionMode);
   const openConcepts = useVisionStore(s => s.openConcepts);
   const setOpenConcepts = useVisionStore(s => s.setOpenConcepts);
+  const executionProvider = useVisionStore(s => s.telemetry.executionProvider);
+  const deviceAcceleration = useVisionStore(s => s.telemetry.deviceAcceleration);
   
   const [conceptsInput, setConceptsInput] = useState(openConcepts.join(', '));
 
@@ -40,7 +42,7 @@ export function VisionPanel() {
               <Zap className={cn("w-5 h-5 shrink-0", visionMode === 'fast' ? "text-[#F5F5F5]" : "text-[#777777]")} />
               <div>
                 <div className={cn("text-sm font-medium mb-1", visionMode === 'fast' ? "text-[#F5F5F5]" : "text-[#B8B8B8]")}>Fast Vision</div>
-                <div className="text-xs text-[#777777]">COCO-SSD model. Fixed 80-class vocabulary. Prioritizes max FPS and low latency.</div>
+                <div className="text-xs text-[#777777]">YOLOv8n ONNX with ByteTrack + OSNet ReID appearance matching. Fixed 80-class COCO vocabulary, max FPS.</div>
               </div>
             </button>
             
@@ -54,7 +56,7 @@ export function VisionPanel() {
               <Eye className={cn("w-5 h-5 shrink-0", visionMode === 'open' ? "text-[#F5F5F5]" : "text-[#777777]")} />
               <div>
                 <div className={cn("text-sm font-medium mb-1", visionMode === 'open' ? "text-[#F5F5F5]" : "text-[#B8B8B8]")}>Open Vision</div>
-                <div className="text-xs text-[#777777]">Zero-shot text-conditioned detection. Find any object by typing its name. Uses WebGPU where available.</div>
+                <div className="text-xs text-[#777777]">YOLO-World + CLIP text embeddings computed in-browser. Zero-shot: find any object by typing its name.</div>
               </div>
             </button>
           </div>
@@ -83,11 +85,17 @@ export function VisionPanel() {
             </div>
             
             <div className="mt-8">
-              <h3 className="text-xs text-[#777777] uppercase mb-4 tracking-widest">Runtime Fallback Status</h3>
+              <h3 className="text-xs text-[#777777] uppercase mb-4 tracking-widest">Runtime Status</h3>
               <div className="p-3 bg-[#1A1A1A] rounded-sm border border-[#242424] flex justify-between items-center text-sm">
-                <span className="text-[#B8B8B8]">Vision Runtime</span>
-                <span className="text-[#F5F5F5] font-mono">WebGPU / WASM</span>
+                <span className="text-[#B8B8B8]">Execution Provider</span>
+                <span className="text-[#F5F5F5] font-mono uppercase">{executionProvider}</span>
               </div>
+              {deviceAcceleration && (
+                <div className="mt-2 px-3 py-2 bg-[#111111] rounded-sm border border-[#1F1F1F] flex justify-between items-center text-xs">
+                  <span className="text-[#777777]">Acceleration</span>
+                  <span className="text-[#AAAAAA] font-mono">{deviceAcceleration}</span>
+                </div>
+              )}
             </div>
           </div>
         )}

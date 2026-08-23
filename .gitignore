@@ -5,5 +5,11 @@ dist/
 coverage/
 .DS_Store
 *.log
+*.tsbuildinfo
 .env*
 !.env.example
+
+# Large optional models fetched via scripts/download-models.js (yolov8n.onnx stays tracked)
+public/models/yoloworld.onnx
+public/models/osnet_x1_0.onnx
+public/models/clip_text_encoder.onnx

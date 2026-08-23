@@ -1,6 +1,7 @@
 import { useRef, useEffect, useCallback, useState } from 'react';
 import { useModelInitStore } from '../store/modelInitStore';
 import { useVisionStore, type ExecutionProviderType } from '../store';
+import type { Detection, CapturedFrame } from '../types';
 
 interface YOLOMessage {
   type: 'INIT' | 'DETECT' | 'SET_CONCEPTS';
@@ -12,13 +13,6 @@ interface YOLOResponse {
   type: 'READY' | 'DETECTION_RESULT' | 'ERROR' | 'PROGRESS';
   msgId: number;
   payload?: any;
-}
-
-interface Detection {
-  bbox: [number, number, number, number];
-  score: number;
-  class: string;
-  classId: number;
 }
 
 export interface DetectionResultPayload {
@@ -214,7 +208,7 @@ export function useYOLOWorker(modelUrl?: string, concepts?: string[]) {
   }, [modelUrl, concepts]);
 
   const detect = useCallback(async (
-    frameInput: { buffer?: ArrayBuffer; data?: Uint8ClampedArray; width?: number; height?: number; originalWidth?: number; originalHeight?: number; scale?: number; offsetX?: number; offsetY?: number } | ImageData, 
+    frameInput: CapturedFrame | ImageData, 
     confidenceThreshold?: number, 
     iouThreshold?: number
   ): Promise<DetectionResultPayload> => {
@@ -424,7 +418,7 @@ export function useYOLOWorldWorker(modelUrl?: string, concepts?: string[]) {
   }, [modelUrl, concepts]);
 
   const detect = useCallback(async (
-    frameInput: { buffer?: ArrayBuffer; data?: Uint8ClampedArray; width?: number; height?: number; originalWidth?: number; originalHeight?: number; scale?: number; offsetX?: number; offsetY?: number } | ImageData, 
+    frameInput: CapturedFrame | ImageData, 
     confidenceThreshold?: number, 
     iouThreshold?: number
   ): Promise<DetectionResultPayload> => {
@@ -506,24 +500,5 @@ export function useYOLOWorldWorker(modelUrl?: string, concepts?: string[]) {
   }, [ready]);
 
   return { detect, setConcepts, ready, error: error || initError };
-}
-
-interface YOLOMessage {
-  type: 'INIT' | 'DETECT' | 'SET_CONCEPTS';
-  payload?: any;
-  msgId: number;
-}
-
-interface YOLOResponse {
-  type: 'READY' | 'DETECTION_RESULT' | 'ERROR' | 'PROGRESS';
-  msgId: number;
-  payload?: any;
-}
-
-interface Detection {
-  bbox: [number, number, number, number];
-  score: number;
-  class: string;
-  classId: number;
 }
 

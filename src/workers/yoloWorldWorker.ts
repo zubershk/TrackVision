@@ -1,18 +1,19 @@
 import * as ort from 'onnxruntime-web';
-import { 
-  preprocessImage, 
-  getIoU, 
-  applyNMS, 
+import {
+  preprocessImage,
+  getIoU,
+  applyNMS,
   applyNMSWithClass,
   COCO_CLASSES,
   createAcceleratedSession,
   type ExecutionProviderType,
-  type Detection, 
-  type BBox, 
-  type YOLOWorldMessage, 
-  type YOLOWorldResponse, 
-  type YOLOWorldConfig 
+  type Detection,
+  type BBox,
+  type YOLOWorldMessage,
+  type YOLOWorldResponse,
+  type YOLOWorldConfig
 } from './workerUtils';
+import { CLIPTokenizer } from './clipTokenizer';
 
 // Configure ONNX WebAssembly environment for Web Worker
 ort.env.wasm.numThreads = Math.min(4, typeof navigator !== 'undefined' ? (navigator.hardwareConcurrency || 2) : 2);
@@ -30,9 +31,15 @@ let clipInputName = '';
 let clipOutputName = '';
 let config: YOLOWorldConfig | null = null;
 let modelLoaded = false;
+let modelIsPlaceholder = false;
 let clipLoaded = false;
 let currentConcepts: string[] = [];
 let conceptEmbeddings: Float32Array[] = [];
+let tokenizer: CLIPTokenizer | null = null;
+let needsTextFeatures = false;
+let textInputName = '';
+let scoresOutputName = '';
+let boxesOutputName = '';
 
 const DEFAULT_CONCEPTS = [
   'person', 'bicycle', 'car', 'motorcycle', 'airplane', 'bus', 'train', 'truck', 'boat',
@@ -73,6 +80,7 @@ async function initModel(modelConfig: YOLOWorldConfig): Promise<void> {
       console.warn('[YOLO-World Worker] Model too small (placeholder), skipping ONNX init');
       modelLoaded = true;
       session = null;
+      modelIsPlaceholder = true;
       return;
     }
     
@@ -94,11 +102,15 @@ async function initModel(modelConfig: YOLOWorldConfig): Promise<void> {
     activeProvider = accelerated.provider;
     providerDescription = accelerated.description;
     console.log(`[YOLO-World Worker] ONNX session created successfully with [${activeProvider}]: ${providerDescription}`);
-    
-    inputName = session.inputNames[0];
-    outputName = session.outputNames[0];
-    
-    // Don't load CLIP model yet - defer until SET_CONCEPTS
+
+    needsTextFeatures = session.inputNames.length > 1;
+    inputName = session.inputNames.find(n => !n.toLowerCase().includes('text')) ?? session.inputNames[0];
+    textInputName = session.inputNames.find(n => n !== inputName) ?? '';
+    scoresOutputName = session.outputNames.find(n => n.toLowerCase().includes('score')) ?? session.outputNames[0];
+    boxesOutputName = session.outputNames.find(n => n.toLowerCase().includes('box') && n !== scoresOutputName)
+      ?? (session.outputNames.length > 1 ? session.outputNames[1] : session.outputNames[0]);
+    console.log(`[YOLO-World Worker] Inputs: ${session.inputNames.join(', ')} | Outputs: ${session.outputNames.join(', ')}`);
+
     modelLoaded = true;
     clipLoaded = false;
     console.log('YOLO-World model loaded (CLIP deferred):', modelConfig.modelUrl);
@@ -117,12 +129,24 @@ async function initModel(modelConfig: YOLOWorldConfig): Promise<void> {
 
 async function loadCLIPModel(clipModelUrl?: string): Promise<void> {
   if (clipLoaded || !clipModelUrl) return;
-  
+
   try {
     console.log('[YOLO-World Worker] Loading CLIP model:', clipModelUrl);
-    
+
+    if (!tokenizer) {
+      const [vocabRes, mergesRes] = await Promise.all([
+        fetch('/models/clip-tokenizer/vocab.json'),
+        fetch('/models/clip-tokenizer/merges.txt')
+      ]);
+      if (!vocabRes.ok || !mergesRes.ok) {
+        throw new Error(`Tokenizer assets not found (${vocabRes.status}/${mergesRes.status})`);
+      }
+      tokenizer = new CLIPTokenizer(await vocabRes.json(), await mergesRes.text());
+      console.log('[YOLO-World Worker] CLIP BPE tokenizer loaded');
+    }
+
     const executionProviders = ['wasm'];
-    
+
     clipSession = await ort.InferenceSession.create(clipModelUrl, {
       executionProviders,
       graphOptimizationLevel: 'all',
@@ -130,14 +154,14 @@ async function loadCLIPModel(clipModelUrl?: string): Promise<void> {
       enableCpuMemArena: true,
       executionMode: 'sequential'
     });
-    
+
     clipInputName = clipSession.inputNames[0];
-    clipOutputName = clipSession.outputNames[0];
+    clipOutputName = clipSession.outputNames.find(n => n.toLowerCase().includes('embed')) ?? clipSession.outputNames[0];
     clipLoaded = true;
-    
+
     // Compute embeddings for current concepts
     await computeConceptEmbeddings();
-    
+
     self.postMessage({ type: 'PROGRESS', msgId: 0, payload: { stage: 'clip_loaded', concepts: currentConcepts } });
   } catch (err) {
     console.warn('[YOLO-World Worker] CLIP model load failed, using default concepts:', err);
@@ -147,48 +171,107 @@ async function loadCLIPModel(clipModelUrl?: string): Promise<void> {
 }
 
 async function computeConceptEmbeddings(): Promise<void> {
-  if (!clipLoaded || !clipSession) {
+  if (!clipLoaded || !clipSession || !tokenizer || currentConcepts.length === 0) {
     conceptEmbeddings = [];
     return;
   }
-  
+
   try {
-    const maxTokens = 77;
-    const tokens = currentConcepts.map((concept) => {
-      const tokenIds = new Array(77).fill(0);
-      for (let i = 0; i < Math.min(concept.length, 75); i++) {
-        tokenIds[i + 1] = concept.charCodeAt(i) % 49407;
+    const seqLen = 77;
+    const numConcepts = currentConcepts.length;
+    const flat = new BigInt64Array(numConcepts * seqLen);
+
+    for (let c = 0; c < numConcepts; c++) {
+      const prompt = `a photo of a ${currentConcepts[c]}`;
+      const ids = tokenizer.encode(prompt, seqLen);
+      for (let t = 0; t < seqLen; t++) {
+        flat[c * seqLen + t] = BigInt(ids[t]);
       }
-      tokenIds[0] = 49406;
-      tokenIds[tokenIds.findIndex(t => t === 0)] = 49407;
-      return tokenIds;
-    });
-    
-    const inputIds = new Float32Array(tokens.flat());
-    const inputTensor = new ort.Tensor('float32', inputIds, [currentConcepts.length, 77]);
-    
+    }
+
+    const inputTensor = new ort.Tensor('int64', flat, [numConcepts, seqLen]);
     const results = await clipSession.run({ [clipInputName]: inputTensor });
-    const embeddings = results[clipOutputName].data as Float32Array;
-    
+    const output = results[clipOutputName];
+    const embedData = output.data as Float32Array;
+    const dims = output.dims;
+    const dim = dims[dims.length - 1];
+
     conceptEmbeddings = [];
-    const dim = embeddings.length / currentConcepts.length;
-    for (let i = 0; i < currentConcepts.length; i++) {
+    for (let i = 0; i < numConcepts; i++) {
       const emb = new Float32Array(dim);
-      emb.set(embeddings.slice(i * dim, (i + 1) * dim));
-      
+      emb.set(embedData.slice(i * dim, (i + 1) * dim));
+
       let norm = 0;
       for (let j = 0; j < dim; j++) norm += emb[j] * emb[j];
       norm = Math.sqrt(norm);
       if (norm > 0) for (let j = 0; j < dim; j++) emb[j] /= norm;
-      
+
       conceptEmbeddings.push(emb);
     }
-    
-    console.log('Computed embeddings for', currentConcepts.length, 'concepts');
+
+    console.log('Computed embeddings for', numConcepts, 'concepts (dim', dim + ')');
   } catch (err) {
     console.warn('[YOLO-World Worker] Concept embedding computation failed:', err);
     conceptEmbeddings = [];
   }
+}
+
+function postprocessWorld(
+  scores: Float32Array,
+  scoreDims: readonly number[],
+  boxes: Float32Array,
+  confThreshold: number,
+  iouThreshold: number,
+  scale: number,
+  offsetX: number,
+  offsetY: number,
+  originalW: number,
+  originalH: number
+): Detection[] {
+  if (!config) return [];
+
+  const rank = scoreDims.length;
+  const numAnchors = Number(scoreDims[rank - 2]);
+  const numClasses = Number(scoreDims[rank - 1]);
+
+  const detections: Detection[] = [];
+  const invScale = scale !== 0 ? 1 / scale : 1;
+
+  for (let i = 0; i < numAnchors; i++) {
+    let bestConf = -Infinity;
+    let classId = 0;
+    for (let c = 0; c < numClasses; c++) {
+      const conf = scores[i * numClasses + c];
+      if (conf > bestConf) {
+        bestConf = conf;
+        classId = c;
+      }
+    }
+    if (bestConf < confThreshold) continue;
+
+    const x1 = boxes[i * 4];
+    const y1 = boxes[i * 4 + 1];
+    const x2 = boxes[i * 4 + 2];
+    const y2 = boxes[i * 4 + 3];
+
+    const fx1 = Math.max(0, Math.min((x1 - offsetX) * invScale, originalW));
+    const fy1 = Math.max(0, Math.min((y1 - offsetY) * invScale, originalH));
+    const fx2 = Math.max(0, Math.min((x2 - offsetX) * invScale, originalW));
+    const fy2 = Math.max(0, Math.min((y2 - offsetY) * invScale, originalH));
+
+    const w = fx2 - fx1;
+    const h = fy2 - fy1;
+    if (w <= 1 || h <= 1) continue;
+
+    detections.push({
+      bbox: [fx1, fy1, w, h],
+      score: bestConf,
+      class: currentConcepts[classId] || `concept_${classId}`,
+      classId
+    });
+  }
+
+  return applyNMSWithClass(detections, iouThreshold);
 }
 
 function postprocess(
@@ -356,6 +439,20 @@ self.onmessage = async (event: MessageEvent<{ type: string; payload?: any; msgId
       };
       console.log('[YOLO-World Worker] INIT received, starting model load...');
       await initModel(modelConfig);
+      if (modelIsPlaceholder) {
+        self.postMessage({
+          type: 'ERROR',
+          msgId,
+          payload: {
+            error: 'Open-vocab models not installed (placeholder stubs detected). Run "node scripts/download-models.js" to fetch yoloworld.onnx + clip_text_encoder.onnx, then reload.'
+          }
+        });
+        console.warn('[YOLO-World Worker] Placeholder model detected — open mode disabled until full models are downloaded');
+        return;
+      }
+      if (needsTextFeatures) {
+        console.log('[YOLO-World Worker] Multi-input export — CLIP text embeddings will be computed from concepts');
+      }
       self.postMessage({ type: 'READY', msgId, payload: { concepts: currentConcepts, clipLoaded: false } });
       console.log('[YOLO-World Worker] Model ready, sent READY');
     } catch (err) {
@@ -367,6 +464,14 @@ self.onmessage = async (event: MessageEvent<{ type: string; payload?: any; msgId
   if (type === 'DETECT') {
     if (!modelLoaded) {
       self.postMessage({ type: 'DETECTION_RESULT', msgId, payload: { results: [], inferenceMs: 0, error: 'Model not loaded' } });
+      return;
+    }
+    if (modelIsPlaceholder || !session) {
+      self.postMessage({ type: 'DETECTION_RESULT', msgId, payload: { results: [], inferenceMs: 0, error: 'YOLO-World model is a placeholder — run scripts/download-models.js' } });
+      return;
+    }
+    if (needsTextFeatures && conceptEmbeddings.length === 0) {
+      self.postMessage({ type: 'DETECTION_RESULT', msgId, payload: { results: [], inferenceMs: 0, error: 'No concepts set — CLIP text embeddings not ready yet' } });
       return;
     }
     
@@ -407,16 +512,47 @@ self.onmessage = async (event: MessageEvent<{ type: string; payload?: any; msgId
       }
       
       const inputTensor = new ort.Tensor('float32', planarData, [1, 3, inputH, inputW]);
-      
-      const results = await session!.run({ [inputName]: inputTensor });
-      const output = results[outputName].data as Float32Array;
-      const dims = results[outputName].dims;
-      
+
+      const feeds: Record<string, ort.Tensor> = { [inputName]: inputTensor };
+      if (needsTextFeatures && textInputName) {
+        const numConcepts = conceptEmbeddings.length;
+        const dim = numConcepts > 0 ? conceptEmbeddings[0].length : 0;
+        if (numConcepts === 0 || dim === 0) {
+          self.postMessage({ type: 'DETECTION_RESULT', msgId, payload: { results: [], inferenceMs: 0, error: 'Concept embeddings unavailable' } });
+          return;
+        }
+        const tf = new Float32Array(numConcepts * dim);
+        for (let c = 0; c < numConcepts; c++) tf.set(conceptEmbeddings[c], c * dim);
+        feeds[textInputName] = new ort.Tensor('float32', tf, [1, numConcepts, dim]);
+      }
+
+      const results = await session!.run(feeds);
       const origW = originalWidth || imageData?.width || inputW;
       const origH = originalHeight || imageData?.height || inputH;
-      
-      const detections = postprocess(output, dims, origW, origH, threshold, iouThresh, scale, offsetX, offsetY);
+
+      let detections: Detection[];
       const inferenceMs = performance.now() - start;
+
+      if (scoresOutputName !== boxesOutputName && needsTextFeatures) {
+        const scoresOut = results[scoresOutputName];
+        const boxesOut = results[boxesOutputName];
+        detections = postprocessWorld(
+          scoresOut.data as Float32Array,
+          scoresOut.dims,
+          boxesOut.data as Float32Array,
+          threshold,
+          iouThresh,
+          scale ?? Math.min(inputW / origW, inputH / origH),
+          offsetX ?? (inputW - Math.round(origW * (scale ?? 1))) / 2,
+          offsetY ?? (inputH - Math.round(origH * (scale ?? 1))) / 2,
+          origW,
+          origH
+        );
+      } else {
+        const output = results[outputName].data as Float32Array;
+        const dims = results[outputName].dims;
+        detections = postprocess(output, dims, origW, origH, threshold, iouThresh, scale, offsetX, offsetY);
+      }
       
       self.postMessage({
         type: 'DETECTION_RESULT',

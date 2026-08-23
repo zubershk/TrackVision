@@ -106,12 +106,17 @@ export function useTrackerWorker() {
     return new Promise((resolve, reject) => {
       const worker = workerRef.current;
       if (!worker) {
-        // If worker is in transition or tearing down, resolve gracefully
+        // Worker is tearing down or restarting (e.g. StrictMode remount).
+        // Resolve gracefully so the frame loop drops this frame instead of
+        // throwing — mirrors the timeout behavior below.
         if (type === 'INIT') {
           resolve({ status: 'ready' } as T);
-          return;
+        } else if (type === 'UPDATE') {
+          // update() unwraps result.tracks — must match the worker's response shape
+          resolve({ tracks: [] } as unknown as T);
+        } else {
+          resolve(null as T);
         }
-        reject(new Error('Tracker worker not initialized'));
         return;
       }
       const msgId = ++msgIdCounter;
@@ -122,7 +127,7 @@ export function useTrackerWorker() {
           if (type === 'INIT') {
             resolve({ status: 'ready' } as T);
           } else if (type === 'UPDATE') {
-            resolve([] as T);
+            resolve({ tracks: [] } as unknown as T);
           } else {
             resolve(null as T);
           }

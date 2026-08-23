@@ -1,11 +1,4 @@
-type BBox = [number, number, number, number];
-
-interface Detection {
-  bbox: BBox;
-  score: number;
-  class: string;
-  embedding?: Float32Array;
-}
+import type { BBox, Detection } from '../types';
 
 enum TrackState {
   TENTATIVE = 0,

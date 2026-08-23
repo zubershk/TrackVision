@@ -1,6 +1,7 @@
 import type * as ortType from 'onnxruntime-web';
+import type { BBox, Detection } from '../types';
 
-export type BBox = [number, number, number, number];
+export type { BBox, Detection };
 
 export type ExecutionProviderType = 'webgpu' | 'webnn' | 'webgl' | 'wasm';
 
@@ -12,13 +13,6 @@ export interface HardwareAccelerationReport {
   hardwareConcurrency: number;
   activeProvider: ExecutionProviderType;
   providerDescription: string;
-}
-
-export interface Detection {
-  bbox: BBox;
-  score: number;
-  class: string;
-  classId: number;
 }
 
 export interface YOLOMessage {
@@ -185,33 +179,40 @@ export function preprocessImage(imageData: ImageData, targetSize: [number, numbe
   return floatData;
 }
 
-export function cropImage(imageData: ImageData, bbox: BBox, targetSize: [number, number] = [128, 256]): Float32Array {
+export function cropImage(
+  imageData: ImageData,
+  bbox: BBox,
+  targetSize: [number, number] = [128, 256],
+  normalize?: { mean: [number, number, number]; std: [number, number, number] }
+): Float32Array {
   const [dstW, dstH] = targetSize;
   const [x, y, w, h] = bbox;
-  
+
   const canvas = new OffscreenCanvas(dstW, dstH);
   const ctx = canvas.getContext('2d')!;
-  
+
   const sourceCanvas = new OffscreenCanvas(imageData.width, imageData.height);
   const sourceCtx = sourceCanvas.getContext('2d')!;
   sourceCtx.putImageData(imageData, 0, 0);
-  
+
   ctx.fillStyle = '#777777';
   ctx.fillRect(0, 0, dstW, dstH);
   ctx.drawImage(sourceCanvas, Math.floor(x), Math.floor(y), Math.max(1, Math.floor(w)), Math.max(1, Math.floor(h)), 0, 0, dstW, dstH);
-  
+
   const resizedData = ctx.getImageData(0, 0, dstW, dstH);
   const data = resizedData.data;
   const floatData = new Float32Array(3 * dstW * dstH);
-  
+
   let idx = 0;
   for (let c = 0; c < 3; c++) {
+    const mean = normalize ? normalize.mean[c] : 0;
+    const std = normalize ? normalize.std[c] : 1;
     for (let i = 0; i < dstW * dstH; i++) {
       const pixelIdx = i * 4 + c;
-      floatData[idx++] = data[pixelIdx] / 255;
+      floatData[idx++] = (data[pixelIdx] / 255 - mean) / std;
     }
   }
-  
+
   return floatData;
 }
 

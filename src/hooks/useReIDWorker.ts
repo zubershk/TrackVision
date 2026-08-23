@@ -25,6 +25,7 @@ export function useReIDWorker(modelUrl?: string) {
   const pendingRef = useRef<Map<number, PendingRequest>>(new Map());
   const batchPendingRef = useRef<Map<number, PendingRequest>>(new Map());
   const [ready, setReady] = useState(false);
+  const [isFallback, setIsFallback] = useState(false);
   const [loading, setLoading] = useState(false);
   const [error, setError] = useState<string | null>(null);
 
@@ -53,7 +54,7 @@ export function useReIDWorker(modelUrl?: string) {
 
       pendingRef.current.forEach(({ resolve, timeoutId }) => {
         clearTimeout(timeoutId);
-        resolve(new Float32Array(512));
+        resolve(null);
       });
       pendingRef.current.clear();
       batchPendingRef.current.forEach(({ resolve, timeoutId }) => {
@@ -69,6 +70,7 @@ export function useReIDWorker(modelUrl?: string) {
       if (type === 'READY') {
         console.log('[useReIDWorker] Worker READY, lazy:', payload?.lazy);
         setReady(true);
+        setIsFallback(false);
         setLoading(false);
         useModelInitStore.getState().updateSubsystem('reid', {
           status: 'ready',
@@ -89,6 +91,7 @@ export function useReIDWorker(modelUrl?: string) {
       if (type === 'FALLBACK') {
         console.log('[useReIDWorker] Worker using fallback');
         setReady(true);
+        setIsFallback(true);
         setLoading(false);
         useModelInitStore.getState().updateSubsystem('reid', {
           status: 'fallback',
@@ -125,7 +128,7 @@ export function useReIDWorker(modelUrl?: string) {
           const pending = pendingRef.current.get(msgId)!;
           clearTimeout(pending.timeoutId);
           pendingRef.current.delete(msgId);
-          pending.resolve(payload.embedding);
+          pending.resolve(payload.embedding ?? null);
         }
         return;
       }
@@ -135,7 +138,7 @@ export function useReIDWorker(modelUrl?: string) {
           const pending = batchPendingRef.current.get(msgId)!;
           clearTimeout(pending.timeoutId);
           batchPendingRef.current.delete(msgId);
-          pending.resolve(payload.embeddings);
+          pending.resolve(payload.embeddings ?? []);
         }
         return;
       }
@@ -145,7 +148,7 @@ export function useReIDWorker(modelUrl?: string) {
           const pending = pendingRef.current.get(msgId)!;
           clearTimeout(pending.timeoutId);
           pendingRef.current.delete(msgId);
-          pending.resolve(new Float32Array(512));
+          pending.resolve(null);
         }
         if (msgId && batchPendingRef.current.has(msgId)) {
           const pending = batchPendingRef.current.get(msgId)!;
@@ -154,6 +157,7 @@ export function useReIDWorker(modelUrl?: string) {
           pending.resolve([]);
         }
         setError(payload?.error || 'ReID worker error');
+        setIsFallback(true);
         useModelInitStore.getState().updateSubsystem('reid', {
           status: 'fallback',
           percent: 100,
@@ -170,9 +174,10 @@ export function useReIDWorker(modelUrl?: string) {
       worker.terminate();
       workerRef.current = null;
       setReady(false);
+      setIsFallback(false);
       pendingRef.current.forEach(({ resolve, timeoutId }) => {
         clearTimeout(timeoutId);
-        resolve(new Float32Array(512));
+        resolve(null);
       });
       pendingRef.current.clear();
       batchPendingRef.current.forEach(({ resolve, timeoutId }) => {
@@ -183,11 +188,11 @@ export function useReIDWorker(modelUrl?: string) {
     };
   }, [modelUrl]);
 
-  const extract = useCallback(async (imageData: ImageData, bbox: [number, number, number, number]): Promise<Float32Array> => {
+  const extract = useCallback(async (imageData: ImageData, bbox: [number, number, number, number]): Promise<Float32Array | null> => {
     return new Promise((resolve) => {
       const worker = workerRef.current;
       if (!worker || !ready) {
-        resolve(new Float32Array(512));
+        resolve(null);
         return;
       }
       const msgId = ++msgIdCounter;
@@ -196,7 +201,7 @@ export function useReIDWorker(modelUrl?: string) {
         if (pendingRef.current.has(msgId)) {
           pendingRef.current.delete(msgId);
           console.warn('[useReIDWorker] Extraction timeout');
-          resolve(new Float32Array(512));
+          resolve(null);
         }
       }, 8000);
 
@@ -205,11 +210,11 @@ export function useReIDWorker(modelUrl?: string) {
     });
   }, [ready]);
 
-  const extractBatch = useCallback(async (imageData: ImageData, bboxes: [number, number, number, number][]): Promise<Float32Array[]> => {
+  const extractBatch = useCallback(async (imageData: ImageData, bboxes: [number, number, number, number][]): Promise<(Float32Array | null)[]> => {
     return new Promise((resolve) => {
       const worker = workerRef.current;
       if (!worker || !ready || bboxes.length === 0) {
-        resolve(bboxes.map(() => new Float32Array(512)));
+        resolve(bboxes.map(() => null));
         return;
       }
       const msgId = ++msgIdCounter;
@@ -218,7 +223,7 @@ export function useReIDWorker(modelUrl?: string) {
         if (batchPendingRef.current.has(msgId)) {
           batchPendingRef.current.delete(msgId);
           console.warn('[useReIDWorker] Batch extraction timeout');
-          resolve(bboxes.map(() => new Float32Array(512)));
+          resolve(bboxes.map(() => null));
         }
       }, 8000);
 
@@ -227,5 +232,5 @@ export function useReIDWorker(modelUrl?: string) {
     });
   }, [ready]);
 
-  return { extract, extractBatch, ready, loading, error };
+  return { extract, extractBatch, ready, isFallback, loading, error };
 }

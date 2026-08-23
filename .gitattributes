@@ -1,0 +1,15 @@
+# Normalize line endings — prevents CRLF/LF churn between editors and checkouts
+* text=auto eol=lf
+
+# Binary assets — never transform
+*.onnx binary
+*.wasm binary
+*.png binary
+*.jpg binary
+*.jpeg binary
+*.gif binary
+*.ico binary
+
+# Windows scripts that must keep CRLF
+*.bat text eol=crlf
+*.ps1 text eol=crlf

@@ -1,7 +1,8 @@
 import { create } from 'zustand';
+import type { BBox } from './types';
 import { generateColor } from './lib/utils';
 
-export type BBox = [number, number, number, number];
+export type { BBox };
 
 export type TrackStateType = 'TENTATIVE' | 'CONFIRMED' | 'DELETED';
 
@@ -73,23 +74,6 @@ export interface Telemetry {
   totalProcessedFrames: number;
 }
 
-export interface TrackingMetrics {
-  mota: number;
-  motp: number;
-  idf1: number;
-  precision: number;
-  recall: number;
-  fp: number;
-  fn: number;
-  idSwaps: number;
-  mostlyTracked: number;
-  mostlyLost: number;
-  partiallyTracked: number;
-  fps: number;
-  totalFrames: number;
-  totalObjects: number;
-}
-
 export type EventType = 'TRACK_NEW' | 'TRACK_LOST' | 'TRACK_REACQUIRED' | 'SYSTEM';
 export interface AppEvent {
   id: string;
@@ -121,8 +105,6 @@ interface VisionState {
   followMode: boolean;
   showSceneMap: boolean;
   showCommandPalette: boolean;
-  trackingMetrics: TrackingMetrics | null;
-  metricsEnabled: boolean;
   setMode: (mode: 'landing' | 'loading' | 'app') => void;
   setTracking: (isTracking: boolean) => void;
   setReplay: (isReplay: boolean, time?: number) => void;
@@ -196,8 +178,6 @@ export const useVisionStore = create<VisionState>((set, get) => ({
   followMode: false,
   showSceneMap: true,
   showCommandPalette: false,
-  trackingMetrics: null,
-  metricsEnabled: false,
 
   setMode: (mode) => set({ mode }),
   setHardwareInfo: (info) => set((s) => ({ hardwareInfo: { ...s.hardwareInfo, ...info } })),
@@ -358,9 +338,7 @@ export const useVisionStore = create<VisionState>((set, get) => ({
   setCommandPalette: (showCommandPalette) => set({ showCommandPalette }),
   setVisionMode: (visionMode) => set({ visionMode }),
   setOpenConcepts: (openConcepts) => set({ openConcepts }),
-  setTrackingMetrics: (metrics: TrackingMetrics | null) => set({ trackingMetrics: metrics }),
-  setMetricsEnabled: (enabled: boolean) => set({ metricsEnabled: enabled }),
   resetSession: () => set({
-    frames: [], trackMeta: new Map(), events: [], currentTime: 0, isReplay: false, sessionStartTime: performance.now(), trackingMetrics: null
+    frames: [], trackMeta: new Map(), events: [], currentTime: 0, isReplay: false, sessionStartTime: performance.now()
   })
 }));

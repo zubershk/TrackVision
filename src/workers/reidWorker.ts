@@ -2,7 +2,6 @@ import * as ort from 'onnxruntime-web';
 import {
   cropImage,
   COCO_CLASSES,
-  generateFallbackEmbedding,
   createAcceleratedSession,
   type ExecutionProviderType,
   type Detection,
@@ -25,6 +24,12 @@ let modelLoaded = false;
 let modelLoading = false;
 const EMBEDDING_DIM = 512;
 const INPUT_SIZE = [128, 256] as [number, number];
+// ImageNet normalization required by OSNet exports (see Axelera model card:
+// mean [0.485, 0.456, 0.406], std [0.229, 0.224, 0.225], RGB, NCHW)
+const OSNET_NORMALIZE = {
+  mean: [0.485, 0.456, 0.406] as [number, number, number],
+  std: [0.229, 0.224, 0.225] as [number, number, number]
+};
 
 async function initModel(modelUrl: string): Promise<void> {
   if (modelLoaded || modelLoading) return;
@@ -135,7 +140,7 @@ async function initModel(modelUrl: string): Promise<void> {
   }
 }
 
-async function extractEmbedding(imageData: ImageData, bbox: [number, number, number, number]): Promise<Float32Array> {
+async function extractEmbedding(imageData: ImageData, bbox: [number, number, number, number]): Promise<Float32Array | null> {
   // Lazy load model on first use
   if (!modelLoaded && !modelLoading) {
     const modelUrl = '/models/osnet_x1_0.onnx';
@@ -144,65 +149,63 @@ async function extractEmbedding(imageData: ImageData, bbox: [number, number, num
   
   if (modelLoaded && session) {
     try {
-      const inputData = cropImage(imageData, bbox, INPUT_SIZE);
+      const inputData = cropImage(imageData, bbox, INPUT_SIZE, OSNET_NORMALIZE);
       const inputTensor = new ort.Tensor('float32', inputData, [1, 3, 256, 128]);
       const results = await session.run({ [inputName]: inputTensor });
       const output = results[outputName].data as Float32Array;
-      
+
       const embedding = new Float32Array(512);
       embedding.set(output.slice(0, 512));
-      
+
       let norm = 0;
       for (let i = 0; i < 512; i++) norm += embedding[i] * embedding[i];
       norm = Math.sqrt(norm);
       if (norm > 0) for (let i = 0; i < 512; i++) embedding[i] /= norm;
-      
+
       return embedding;
     } catch (err) {
-      console.warn('[ReID Worker] Inference failed, using fallback:', err);
+      console.warn('[ReID Worker] Inference failed:', err);
     }
   }
-  return generateFallbackEmbedding();
+  return null;
 }
 
-async function extractBatch(imageData: ImageData, bboxes: [number, number, number, number][]): Promise<Float32Array[]> {
+// Runs crops one at a time with batch dim 1 — many OSNet exports have a
+// fixed input shape [1,3,256,128] and reject stacked batch tensors.
+// Failed crops yield null so callers can skip appearance for that detection.
+async function extractBatch(imageData: ImageData, bboxes: [number, number, number, number][]): Promise<(Float32Array | null)[]> {
   if (!modelLoaded && !modelLoading) {
     const modelUrl = '/models/osnet_x1_0.onnx';
     await initModel(modelUrl);
   }
-  
-  if (modelLoaded && session) {
+
+  if (!modelLoaded || !session) {
+    return bboxes.map(() => null);
+  }
+
+  const embeddings: (Float32Array | null)[] = [];
+  for (let b = 0; b < bboxes.length; b++) {
     try {
-      const batchSize = bboxes.length;
-      const inputData = new Float32Array(batchSize * 3 * 256 * 128);
-      
-      for (let b = 0; b < batchSize; b++) {
-        const singleInput = cropImage(imageData, bboxes[b], INPUT_SIZE);
-        inputData.set(singleInput, b * 3 * 256 * 128);
-      }
-      
-      const inputTensor = new ort.Tensor('float32', inputData, [batchSize, 3, 256, 128]);
+      const inputData = cropImage(imageData, bboxes[b], INPUT_SIZE, OSNET_NORMALIZE);
+      const inputTensor = new ort.Tensor('float32', inputData, [1, 3, 256, 128]);
       const results = await session.run({ [inputName]: inputTensor });
       const output = results[outputName].data as Float32Array;
-      
-      const embeddings: Float32Array[] = [];
-      for (let b = 0; b < batchSize; b++) {
-        const embedding = new Float32Array(512);
-        embedding.set(output.slice(b * 512, (b + 1) * 512));
-        
-        let norm = 0;
-        for (let i = 0; i < 512; i++) norm += embedding[i] * embedding[i];
-        norm = Math.sqrt(norm);
-        if (norm > 0) for (let i = 0; i < 512; i++) embedding[i] /= norm;
-        
-        embeddings.push(embedding);
-      }
-      return embeddings;
+
+      const embedding = new Float32Array(512);
+      embedding.set(output.slice(0, 512));
+
+      let norm = 0;
+      for (let i = 0; i < 512; i++) norm += embedding[i] * embedding[i];
+      norm = Math.sqrt(norm);
+      if (norm > 0) for (let i = 0; i < 512; i++) embedding[i] /= norm;
+
+      embeddings.push(embedding);
     } catch (err) {
-      console.warn('[ReID Worker] Batch inference failed, using fallback:', err);
+      console.warn('[ReID Worker] Crop inference failed, skipping appearance for this detection:', err);
+      embeddings.push(null);
     }
   }
-  return bboxes.map(() => generateFallbackEmbedding());
+  return embeddings;
 }
 
 self.onmessage = async (event: MessageEvent<{ type: string; payload?: any; msgId: number }>) => {
@@ -220,7 +223,7 @@ self.onmessage = async (event: MessageEvent<{ type: string; payload?: any; msgId
       const embedding = await extractEmbedding(imageData, bbox);
       self.postMessage({ type: 'EMBEDDING', msgId, payload: { embedding } });
     } catch (err) {
-      self.postMessage({ type: 'EMBEDDING', msgId, payload: { embedding: generateFallbackEmbedding() } });
+      self.postMessage({ type: 'EMBEDDING', msgId, payload: { embedding: null } });
     }
   }
 
@@ -230,7 +233,7 @@ self.onmessage = async (event: MessageEvent<{ type: string; payload?: any; msgId
       const embeddings = await extractBatch(imageData, bboxes);
       self.postMessage({ type: 'EMBEDDINGS_BATCH', msgId, payload: { embeddings } });
     } catch (err) {
-      self.postMessage({ type: 'EMBEDDINGS_BATCH', msgId, payload: { embeddings: bboxes.map(() => generateFallbackEmbedding()) } });
+      self.postMessage({ type: 'EMBEDDINGS_BATCH', msgId, payload: { embeddings: bboxes.map(() => null) } });
     }
   }
 };

@@ -150,15 +150,15 @@ export function OpenVisionPlayground() {
               <div className="p-4 rounded-xl bg-white/[0.02] border border-white/10 flex flex-col gap-2">
                 <div className="flex items-center justify-between text-xs font-mono">
                   <span className="text-[#888888]">ENCODER MODEL:</span>
-                  <span className="text-white">CLIP ViT-B/32 (ONNX Web)</span>
+                  <span className="text-white">CLIP ViT-B/32 (ONNX, in-browser)</span>
                 </div>
                 <div className="flex items-center justify-between text-xs font-mono">
                   <span className="text-[#888888]">EMBEDDING DIMENSION:</span>
                   <span className="text-cyan-400 font-mono">512-dim Float32</span>
                 </div>
                 <div className="flex items-center justify-between text-xs font-mono">
-                  <span className="text-[#888888]">ZERO-SHOT LATENCY:</span>
-                  <span className="text-emerald-400">~24 ms (WebGPU)</span>
+                  <span className="text-[#888888]">TEXT ENCODER LOAD:</span>
+                  <span className="text-emerald-400">Lazy — encoded once per concept set</span>
                 </div>
               </div>
             </div>

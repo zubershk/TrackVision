@@ -35,7 +35,6 @@ TrackVision is a production-ready, **fully client-side** multi-object tracking a
 | Follow Mode | Lock onto a track for isolated telemetry |
 | Time Machine | Scrub through 5-minute history with frame-perfect replay |
 | Scene Map | Live 2D top-down spatial density map |
-| MOTA/IDF1 Metrics | CLEAR MOT evaluation built-in |
 | PWA Ready | Installable, offline-capable, responsive |
 
 ---
@@ -54,7 +53,7 @@ flowchart TD
 
     subgraph Detection["Detection Workers"]
         YOLOFast["YOLO Detection\nYOLOv8n - COCO 80"]
-        YOLOOpen["YOLO-World\nOpen-vocabulary + CLIP"]
+        YOLOOpen["YOLO-World\nOpen-vocab + in-browser CLIP"]
     end
 
     subgraph ReID["Re-Identification"]
@@ -76,7 +75,6 @@ flowchart TD
         SceneMap["Scene Map"]
         Telemetry["Telemetry"]
         Events["Events"]
-        Metrics["Metrics"]
     end
 
     Camera --> Offscreen
@@ -94,7 +92,7 @@ flowchart TD
     classDef input fill:#0f3460,stroke:#e94560,stroke-width:2px,color:#eaeaea
 
     class YOLOFast,YOLOOpen,ReIDWorker,TrackerWorker worker
-    class Zustand,Tracks,Timeline,SceneMap,Telemetry,Events,Metrics state
+    class Zustand,Tracks,Timeline,SceneMap,Telemetry,Events state
     class Camera,Offscreen input
 ```
 
@@ -112,24 +110,22 @@ flowchart TD
 ## Detection Pipeline
 
 ### Fast Mode (YOLOv8n)
-- **Model**: YOLOv8n (ONNX, ~6MB)
+- **Model**: YOLOv8n (ONNX, 12.8 MB)
 - **Classes**: 80 COCO categories
-- **Input**: 640×640 RGB
-- **Backend**: WebGPU → WASM fallback
-- **Latency**: ~15-30ms on modern GPUs
+- **Input**: 640×640 RGB letterboxed
+- **Backend**: WebNN → WebGPU → WebGL → WASM fallback cascade
 
 ### Open Mode (YOLO-World)
-- **Model**: YOLO-World + CLIP text encoder
-- **Classes**: Dynamic (text-conditioned)
-- **Input**: 640×640 RGB + text prompts
-- **Embeddings**: CLIP ViT-B/32 (512-dim)
-- **Latency**: ~100-300ms (WASM)
+- **Model**: YOLO-World (RepVL-PAN export) + CLIP ViT-B/32 text encoder
+- **Classes**: Dynamic (text-conditioned, user-supplied concepts)
+- **Input**: 640×640 letterboxed RGB + `text_features [1,C,512]` from in-browser CLIP encoding
+- **Outputs**: post-sigmoid `scores [1,N,C]` + XYXY `boxes [1,N,4]`
+- **Latency**: device-dependent; text embeddings are computed once per concept set, not per frame
 
 ### Detection Features
 - **Class-aware NMS** — Per-class suppression prevents cross-class suppression
-- **Confidence calibration** — Temperature-scaled scores
 - **Letterbox preprocessing** — Aspect-preserving resize with padding
-- **Batch processing** — ReID extracts embeddings for all detections in one forward pass
+- **ReID appearance matching** — Per-crop batch-1 OSNet inference fused into the tracker via EMA + cosine cost
 
 ---
 
@@ -178,19 +174,19 @@ NEW → TRACKED → LOST → REMOVED
 - **Architecture**: Omni-Scale Network (ICCV 2019)
 - **Input**: 256×128 crops → 512-dim L2-normalized embeddings
 - **Training**: Market-1501 + DukeMTMC-reID
-- **ONNX**: ~140KB (x1.0 variant)
+- **ONNX**: convert from PyTorch weights ([kaiyangzhou/osnet](https://huggingface.co/kaiyangzhou/osnet)); full model ~9 MB
 
 ### Embedding Pipeline
 1. **Crop extraction** — Letterbox crop from OffscreenCanvas
-2. **Preprocessing** — Resize 256×128, ImageNet normalization
-3. **Batch inference** — All detections in single forward pass
+2. **Preprocessing** — Resize 256×128, ImageNet normalization (mean/std), RGB → CHW
+3. **Per-crop inference** — Sequential batch-1 forward passes (the Axelera OSNet export rejects stacked batches)
 4. **L2 normalization** — Unit hypersphere projection
-4. **EMA fusion** — α=0.3 update per track
+5. **EMA fusion** — α=0.3 update per track
 
-### Fallback Behavior
-If OSNet model unavailable → normalized random embeddings (cosine similarity ≈ 0)
-- Graceful degradation: tracking relies on motion + IoU only
-- UI indicator: "Using fallback embeddings"
+### Activation & Fallback
+- Embeddings are extracted per frame (batched) **only when a valid OSNet model is loaded**; the init overlay shows the active mode.
+- If OSNet is unavailable → tracker matching falls back to IoU + center distance + class consistency only.
+- Placeholder stubs are detected at startup and never used for appearance matching (deterministic stub embeddings would silently skew matching costs).
 
 ---
 
@@ -221,7 +217,6 @@ If OSNet model unavailable → normalized random embeddings (cosine similarity �
 - **Real-time volume** — Objects/frame over time (AreaChart)
 - **Class distribution** — Bar chart of detected categories
 - **Telemetry cards** — FPS, frame time, inference, tracking latency
-- **MOTA/IDF1** — CLEAR MOT metrics (requires ground truth)
 
 ---
 
@@ -229,19 +224,19 @@ If OSNet model unavailable → normalized random embeddings (cosine similarity �
 
 | Model | File | Size | Input | Output | Purpose |
 |-------|------|------|-------|--------|---------|
-| **YOLOv8n** | `yolov8n.onnx` | ~4 KB* | 1×3×640×640 | 1×84×8400 | COCO detection |
-| **YOLO-World** | `yoloworld.onnx` | ~4 KB* | 1×3×640×640 | 1×84×8400 | Open-vocab detection |
-| **OSNet x1.0** | `osnet_x1_0.onnx` | 140 KB | 1×3×256×128 | 1×512 | ReID embeddings |
-| **CLIP Text** | `clip_text_encoder.onnx` | 96 MB | 1×77 (int64) | 1×512 | Text embeddings |
+| **YOLOv8n** | `yolov8n.onnx` | 12.8 MB ✅ included | 1×3×640×640 | 1×84×8400 | COCO detection |
+| **YOLO-World** | `yoloworld.onnx` | optional (418 MB) | images + text_features [1,C,512] | scores [1,N,C] + boxes [1,N,4] | Open-vocab detection |
+| **OSNet x1.0** | `osnet_x1_0.onnx` | optional (8.8 MB) | 1×3×256×128 | 1×512 | ReID embeddings |
+| **CLIP Text** | `clip_text_encoder.onnx` | optional (254 MB) | input_ids [B,77] int64 | text_embeds [B,512] | Concept → text embeddings |
 
-> *Minimal placeholder models included. Replace with full models for production accuracy.
+> Only `yolov8n.onnx` ships with the repo. Run `node scripts/download-models.js` to fetch the three optional models into `public/models/`. Open mode is fully wired: concepts are tokenized in-browser by a real CLIP BPE tokenizer (`public/models/clip-tokenizer/`, included), encoded by the local CLIP text encoder, and fed to YOLO-World as `text_features` — no external embedding service needed. ReID appearance matching activates automatically once OSNet is present.
 
 ### Model Sources
 | Model | Source | License |
 |-------|--------|---------|
 | YOLOv8n | [onnx-community/yolov8n](https://huggingface.co/onnx-community/yolov8n) | AGPL-3.0 |
-| YOLO-World | [TencentAI/Yolo-World](https://github.com/TencentAI/Yolo-World) | Apache-2.0 |
-| OSNet | [kaiyangzhou/deep-person-reid](https://github.com/kaiyangzhou/deep-person-reid) | MIT |
+| YOLO-World | [wkentaro/yolo-world-onnx](https://github.com/wkentaro/yolo-world-onnx) (ONNX exports) / [AILab-CVC/YOLO-World](https://github.com/AILab-CVC/YOLO-World) (upstream) | GPL-3.0 |
+| OSNet | [Axelera mirror](https://media.axelera.ai/artifacts/model_cards/weights/others/re-id/osnet_x1_0_market.onnx) (ONNX, Market1501) / [kaiyangzhou/osnet](https://huggingface.co/kaiyangzhou/osnet) (PyTorch upstream) | MIT |
 | CLIP | [openai/CLIP](https://github.com/openai/CLIP) | MIT |
 
 ---
@@ -262,11 +257,15 @@ cd TrackVision
 # Install dependencies
 npm install
 
-# (Optional) Download full models - requires HF token for some models
-# node scripts/download-models.js
+# (Optional) Download full models for Open mode + ReID appearance matching
+node scripts/download-models.js
 
-# Development server
+# Development server (localhost — camera works out of the box)
 npm run dev
+
+# Development server over self-signed HTTPS
+# (required for camera access from phones/other devices on your LAN)
+npm run dev:https
 
 # Production build
 npm run build
@@ -277,15 +276,16 @@ npm run preview
 
 ### Model Setup (Optional but Recommended)
 ```bash
-# Place models in public/models/
+node scripts/download-models.js   # downloads all three into public/models/
+
 public/models/
-├── yolov8n.onnx              # ~6 MB
-├── yoloworld.onnx            # ~34 MB
-├── osnet_x1_0.onnx           # ~9 MB
-└── clip_text_encoder.onnx    # ~63 MB
+├── yolov8n.onnx              # 12.8 MB (already included)
+├── yoloworld.onnx            # ~418 MB
+├── osnet_x1_0.onnx           # ~8.8 MB
+└── clip_text_encoder.onnx    # ~254 MB
 ```
 
-> **Without models**: App runs with placeholder detection + fallback random embeddings. Fully functional for UI testing.
+> **Without the optional models**: Fast mode works fully out of the box. Open mode and ReID appearance matching stay inactive until their models are downloaded — the app detects this at startup and shows it in the init overlay instead of silently degrading.
 
 ---
 
@@ -294,16 +294,17 @@ public/models/
 ### Tracker Configuration
 ```typescript
 interface TrackerConfig {
-  trackThresh: number;      // Detection confidence threshold (default: 0.5)
-  matchThresh: number;      // IoU threshold for matching (default: 0.8)
+  trackThresh: number;      // Detection confidence threshold (capped: min(confidenceThreshold, 0.4))
+  matchThresh: number;      // Maximum matching cost for Hungarian assignment (default: 0.7)
   maxTimeLost: number;      // Frames before track removed (default: 30)
   useHungarian: boolean;    // Enable Hungarian algorithm (default: true)
-  embeddingWeight: number;  // Appearance weight in cost (default: 0.3)
+  embeddingWeight: number;  // Appearance weight in cost (default: 0.3, active when ReID model loaded)
   iouWeight: number;        // IoU weight in cost (default: 0.6)
   classWeight: number;      // Class consistency weight (default: 0.1)
   mergeThresh: number;      // Track merge IoU threshold (default: 0.5)
 }
 ```
+Track confirmation requires `hits >= 3` OR two detections scoring >= 0.7. Tracks go LOST after >5 missed frames and are removed after >30 (`maxTimeLost`).
 
 ### Vision Modes
 ```typescript
@@ -317,35 +318,50 @@ interface VisionConfig {
 ```
 
 ### Environment Variables
-```env
-# Optional: Hugging Face token for private model downloads
-VITE_HF_TOKEN=hf_xxxxxxxxxxxxxxxxxxxx
 
-# Optional: Custom model CDN
-VITE_MODEL_CDN=https://cdn.example.com/models/
-```
+None required — the app is fully client-side. (Older docs mentioned `VITE_HF_TOKEN`/`VITE_MODEL_CDN`; no code reads them.)
 
 ---
 
 ## Performance
 
-### Benchmarks (MacBook Pro M2, Chrome 120)
+### Measured Session Init (WebGPU)
 
-| Mode | Resolution | FPS | Inference | Tracking | Memory |
-|------|------------|-----|-----------|----------|--------|
-| Fast (YOLOv8n) | 1280×720 | 30-45 | 12-18ms | 2-4ms | ~120 MB |
-| Open (YOLO-World) | 640×480 | 8-12 | 120-280ms | 3-5ms | ~280 MB |
+Times from a real dev-server run on Windows 11 / Chrome (WebGPU EP):
 
-### Bundle Sizes (Production)
-| Chunk | Size (gzipped) |
-|-------|----------------|
-| Main bundle | 72 KB |
-| YOLO Detection Worker | 407 KB |
-| YOLO-World Worker | 408 KB |
-| ReID Worker | 406 KB |
+| Model | Size | Session init |
+|-------|------|--------------|
+| YOLOv8n (detection) | 12.8 MB | ~1.8 s |
+| OSNet x1_0 (ReID) | 8.8 MB | ~1.9 s |
+| YOLO-World (open vocab) | 418 MB | ~3.7 s |
+
+End-to-end FPS depends on your GPU/browser/WebGPU driver — no fixed FPS numbers are claimed here. The JS-side tracking pipeline is benchmarked below; model inference dominates frame time in practice.
+
+### Tracking Pipeline (pure JS, Node 22, Vitest run)
+
+NMS + ByteTrack association + Kalman predict/update per frame, measured over 1000 frames each:
+
+| Detections/frame | ms/frame |
+|------------------|----------|
+| 5 | ~0.31 |
+| 10 | ~0.51 |
+| 20 | ~1.04 |
+
+### Bundle Sizes (production build, raw)
+
+Measured from `dist/assets` after `npm run build` (sizes are raw, not gzipped):
+
+| Chunk | Size |
+|-------|------|
+| Main bundle (`index.js`) | 345 KB |
+| Charts chunk (`charts.js`, lazy) | 373 KB |
+| Vendor chunk | 36 KB |
+| YOLO Detection Worker | 404 KB |
+| YOLO-World Worker | 404 KB |
+| ReID Worker | 400 KB |
 | Tracker Worker | 10 KB |
-| ONNX Runtime WASM | 5.8 MB |
-| **Total (initial)** | **~1.2 MB** |
+| CSS | 81 KB |
+| ONNX Runtime WASM (`ort-wasm-simd-threaded.jsep.wasm`) | 26.2 MB |
 
 ---
 
@@ -407,31 +423,24 @@ server {
 
 ---
 
-## Testing
+### Testing
 
 ```bash
 # Type checking
 npm run lint
 
-# Development server
-npm run dev
+# Unit tests (Vitest)
+npm run test          # single run
+npm run test:watch    # watch mode
 
-# Production build
+# Model gate
+npm run check-models
+
+# Production build (runs the model gate first)
 npm run build
-
-# Preview production build
-npm run preview
 ```
 
-### Test Model Loading
-```javascript
-// Browser console
-import { useYOLOWorker } from './src/hooks/useYOLOWorker';
-const { detect, ready } = useYOLOWorker('/models/yolov8n.onnx');
-await ready;
-const result = await detect(imageData);
-console.log(result); // { results: [...], inferenceMs: 15 }
-```
+49 unit tests cover the Kalman filter, Hungarian/greedy matching, ByteTrack lifecycle + appearance fusion, class-aware NMS, and store history pruning. Manual smoke test: `npm run dev`, grant camera permission, and confirm detections render with telemetry updating.
 
 ---
 
@@ -440,28 +449,30 @@ console.log(result); // { results: [...], inferenceMs: 15 }
 ```
 TrackVision/
 ├── public/
-│   ├── models/                 # ONNX models (Git LFS)
+│   ├── models/                 # ONNX models (yolov8n included; others via downloader)
 │   │   ├── yolov8n.onnx
-│   │   ├── yoloworld.onnx
-│   │   ├── osnet_x1_0.onnx
-│   │   └── clip_text_encoder.onnx
-│   ├── sw.js                   # Service Worker
+│   │   ├── yoloworld.onnx      # optional — run download-models.js
+│   │   ├── osnet_x1_0.onnx     # optional — run download-models.js
+│   │   ├── clip_text_encoder.onnx # optional — run download-models.js
+│   │   └── clip-tokenizer/     # CLIP BPE vocab + merges (included, used by open mode)
+│   ├── sw.js                   # Service Worker (registered in production builds)
 │   └── manifest.json           # PWA manifest
 ├── scripts/
 │   ├── download-models.js      # Model downloader (Node.js)
-│   └── create-minimal-models.py # ONNX generator
+│   ├── verify-models.js        # Build-time model gate
+│   ├── dev-https.js            # HTTPS dev wrapper (TV_SSL=1)
+│   └── clean.js                # Cross-platform dist cleanup
 ├── src/
 │   ├── components/             # React components
-│   ├── hooks/                  # Custom React hooks
+│   ├── hooks/                  # Custom React hooks (worker spawning + engine loop)
 │   ├── lib/                    # Core algorithms
 │   │   ├── tracker.ts          # ByteTrack implementation
 │   │   ├── kalman.ts           # Full covariance Kalman
 │   │   ├── matching.ts         # Hungarian + IoU
-│   │   ├── metrics.ts          # MOTA/IDF1 evaluator
 │   │   └── utils.ts
-│   ├── workers/                # Web Workers
-│   ├── hooks/                  # React hooks
-│   ├── store.ts                # Zustand store
+│   ├── workers/                # Web Workers (YOLO, YOLO-World, ReID, tracker)
+│   ├── store.ts                # Zustand store (tracking state)
+│   ├── store/modelInitStore.ts # Boot/init overlay progress
 │   └── styles/                 # Liquid Glass CSS
 ├── dist/                       # Production build
 ├── package.json
@@ -483,8 +494,7 @@ npm run dev
 ```
 
 ### Code Style
-- TypeScript strict mode
-- ESLint + Prettier (via `npm run lint`)
+- TypeScript strict mode (`npm run lint` = `tsc --noEmit`; no ESLint/Prettier configured)
 - Conventional commits
 - No `any` types without justification
 
@@ -501,7 +511,7 @@ npm run dev
 
 MIT License — see [LICENSE](LICENSE) for details.
 
-**Models**: See individual model licenses (AGPL-3.0, Apache-2.0, MIT)
+**Models**: See individual model licenses (AGPL-3.0, GPL-3.0, MIT)
 
 ---
 
@@ -509,11 +519,10 @@ MIT License — see [LICENSE](LICENSE) for details.
 
 - **ByteTrack** — [YOLOX/ByteTrack](https://github.com/ifzhang/ByteTrack)
 - **YOLOv8** — [Ultralytics](https://github.com/ultralytics/ultralytics)
-- **YOLO-World** — [Tencent AI](https://github.com/TencentAI/Yolo-World)
+- **YOLO-World** — [AILab-CVC/YOLO-World](https://github.com/AILab-CVC/YOLO-World) (ONNX exports via [wkentaro/yolo-world-onnx](https://github.com/wkentaro/yolo-world-onnx))
 - **OSNet** — [Kaiyang Zhou](https://github.com/kaiyangzhou/deep-person-reid)
-- **CLIP** — [OpenAI](https://github.com/openai/CLIP)
+- **CLIP** — [OpenAI](https://github.com/openai/CLIP) (tokenizer assets from [Xenova/transformers.js](https://huggingface.co/Xenova/clip-vit-base-patch32))
 - **ONNX Runtime Web** — [Microsoft](https://github.com/microsoft/onnxruntime)
-- **ONNX Models** — [ONNX Model Zoo](https://github.com/onnx/models)
 
 ---
 

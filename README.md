@@ -224,7 +224,7 @@ NEW → TRACKED → LOST → REMOVED
 
 | Model | File | Size | Input | Output | Purpose |
 |-------|------|------|-------|--------|---------|
-| **YOLOv8n** | `yolov8n.onnx` | 12.8 MB ✅ included | 1×3×640×640 | 1×84×8400 | COCO detection |
+| **YOLOv8n** | `yolov8n.onnx` | 12.8 MB (included) | 1×3×640×640 | 1×84×8400 | COCO detection |
 | **YOLO-World** | `yoloworld.onnx` | optional (418 MB) | images + text_features [1,C,512] | scores [1,N,C] + boxes [1,N,4] | Open-vocab detection |
 | **OSNet x1.0** | `osnet_x1_0.onnx` | optional (8.8 MB) | 1×3×256×128 | 1×512 | ReID embeddings |
 | **CLIP Text** | `clip_text_encoder.onnx` | optional (254 MB) | input_ids [B,77] int64 | text_embeds [B,512] | Concept → text embeddings |

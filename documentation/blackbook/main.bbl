@@ -1,0 +1,209 @@
+\begin{thebibliography}{10}
+
+\bibitem{zhang2021bytetrack}
+Y.~Zhang, P.~Sun, Y.~Jiang, D.~Yu, Z.~Yuan, P.~Luo, W.~Liu, and X.~Wang,
+  ``Bytetrack: Multi-object tracking by associating every detection box,'' {\em
+  European Conference on Computer Vision (ECCV)}, pp.~1--21, 2022.
+
+\bibitem{jocher2023ultralytics}
+G.~Jocher, A.~Chaurasia, and J.~Qiu, ``Ultralytics yolov8,'' {\em GitHub
+  Repository}, 2023.
+
+\bibitem{cheng2024yoloworld}
+T.~Cheng, X.~Wang, L.~Huang, and W.~Liu, ``Yolo-world: Real-time
+  open-vocabulary object detection,'' {\em IEEE/CVF Conference on Computer
+  Vision and Pattern Recognition (CVPR)}, pp.~16900--16910, 2024.
+
+\bibitem{zhou2019osnet}
+K.~Zhou, Y.~Yang, A.~Cavallaro, and T.~Xiang, ``Omni-scale feature learning for
+  person re-identification,'' {\em IEEE/CVF International Conference on
+  Computer Vision (ICCV)}, pp.~3701--3711, 2019.
+
+\bibitem{radford2021clip}
+A.~Radford, J.~W. Kim, C.~Hallacy, A.~Ramesh, G.~Goh, S.~Agarwal, G.~Sastry,
+  A.~Askell, P.~Mishkin, J.~Clark, G.~Krueger, and I.~Sutskever, ``Learning
+  transferable visual models from natural language supervision,'' {\em
+  International Conference on Machine Learning (ICML)}, vol.~139,
+  pp.~8748--8763, 2021.
+
+\bibitem{ortweb}
+Microsoft, ``Onnx runtime web,'' {\em GitHub Repository}, 2024.
+
+\bibitem{russakovsky2015imagenet}
+O.~Russakovsky, J.~Deng, H.~Su, J.~Krause, S.~Satheesh, S.~Ma, Z.~Huang,
+  A.~Karpathy, A.~Khosla, M.~Bernstein, A.~C. Berg, and L.~Fei-Fei, ``Imagenet
+  large scale visual recognition challenge,'' {\em International Journal of
+  Computer Vision}, vol.~115, no.~3, pp.~211--252, 2015.
+
+\bibitem{lin2014coco}
+T.-Y. Lin, M.~Maire, S.~Belongie, J.~Hays, P.~Perona, D.~Ramanan, P.~Dollár,
+  and C.~L. Zitnick, ``Microsoft coco: Common objects in context,'' {\em
+  European Conference on Computer Vision (ECCV)}, pp.~740--755, 2014.
+
+\bibitem{geiger2012kitti}
+A.~Geiger, P.~Lenz, C.~Stiller, and R.~Urtasun, ``Vision meets robotics: The
+  kitti dataset,'' {\em International Journal of Robotics Research}, vol.~32,
+  no.~11, pp.~1231--1237, 2013.
+
+\bibitem{girshick2014rcnn}
+R.~Girshick, J.~Donahue, T.~Darrell, and J.~Malik, ``Rich feature hierarchies
+  for accurate object detection and semantic segmentation,'' {\em IEEE/CVF
+  Conference on Computer Vision and Pattern Recognition (CVPR)}, pp.~580--587,
+  2014.
+
+\bibitem{ren2015faster}
+S.~Ren, K.~He, R.~Girshick, and J.~Sun, ``Faster r-cnn: Towards real-time
+  object detection with region proposal networks,'' {\em Advances in Neural
+  Information Processing Systems (NeurIPS)}, vol.~28, pp.~91--99, 2015.
+
+\bibitem{redmon2016yolo}
+J.~Redmon, S.~Divvala, R.~Girshick, and A.~Farhadi, ``You only look once:
+  Unified, real-time object detection,'' {\em IEEE/CVF Conference on Computer
+  Vision and Pattern Recognition (CVPR)}, pp.~779--788, 2016.
+
+\bibitem{liu2016ssd}
+W.~Liu, D.~Anguelov, D.~Erhan, C.~Szegedy, S.~Reed, C.-Y. Fu, and A.~C. Berg,
+  ``Ssd: Single shot multibox detector,'' {\em European Conference on Computer
+  Vision (ECCV)}, pp.~21--37, 2016.
+
+\bibitem{lin2017retinanet}
+T.-Y. Lin, P.~Goyal, R.~Girshick, K.~He, and P.~Dollár, ``Focal loss for dense
+  object detection,'' {\em IEEE/CVF Conference on Computer Vision and Pattern
+  Recognition (CVPR)}, pp.~2980--2988, 2017.
+
+\bibitem{bolme2010mosse}
+D.~S. Bolme, J.~R. Beveridge, B.~A. Draper, and Y.~M. Lui, ``Visual object
+  tracking using adaptive correlation filters,'' {\em IEEE/CVF Conference on
+  Computer Vision and Pattern Recognition (CVPR)}, pp.~2544--2550, 2010.
+
+\bibitem{lukezic2017csrt}
+A.~Lukežič, T.~Vojíř, L.~Čehovin Zajc, J.~Matas, and M.~Kristan,
+  ``Discriminative correlation filter with channel and spatial reliability,''
+  {\em IEEE/CVF Conference on Computer Vision and Pattern Recognition (CVPR)},
+  pp.~6309--6318, 2017.
+
+\bibitem{bertinetto2016siamfc}
+L.~Bertinetto, J.~Valmadre, J.~F. Henriques, A.~Vedaldi, and P.~H.~S. Torr,
+  ``Fully-convolutional siamese networks for object tracking,'' {\em European
+  Conference on Computer Vision (ECCV)}, pp.~850--865, 2016.
+
+\bibitem{li2018siamrpn}
+B.~Li, J.~Yan, W.~Wu, Z.~Zhu, and X.~Hu, ``High performance visual tracking
+  with siamese region proposal network,'' {\em IEEE/CVF Conference on Computer
+  Vision and Pattern Recognition (CVPR)}, pp.~8971--8980, 2018.
+
+\bibitem{kalman1960new}
+R.~E. Kalman, ``A new approach to linear filtering and prediction problems,''
+  {\em Journal of Basic Engineering}, vol.~82, no.~1, pp.~35--45, 1960.
+
+\bibitem{comaniciu2002meanshift}
+D.~Comaniciu, V.~Ramesh, and P.~Meer, ``Kernel-based object tracking,'' {\em
+  IEEE Transactions on Pattern Analysis and Machine Intelligence}, vol.~25,
+  no.~5, pp.~564--577, 2003.
+
+\bibitem{lucas1981iterative}
+B.~D. Lucas and T.~Kanade, ``An iterative image registration technique with an
+  application to stereo vision,'' {\em Proceedings of the 7th International
+  Joint Conference on Artificial Intelligence (IJCAI)}, pp.~674--679, 1981.
+
+\bibitem{farneback2003twoframe}
+G.~Farnebäck, ``Two-frame motion estimation based on polynomial expansion,''
+  {\em Scandinavian Conference on Image Analysis (SCIA)}, pp.~363--370, 2003.
+
+\bibitem{bewley2016sort}
+A.~Bewley, Z.~Ge, L.~Ott, F.~Ramos, and B.~Upcroft, ``Simple online and
+  realtime tracking,'' {\em IEEE International Conference on Image Processing
+  (ICIP)}, pp.~3464--3468, 2016.
+
+\bibitem{wojke2017deepsort}
+N.~Wojke, A.~Bewley, and D.~Paulus, ``Simple online and realtime tracking with
+  a deep association metric,'' {\em IEEE International Conference on Image
+  Processing (ICIP)}, pp.~3645--3649, 2017.
+
+\bibitem{aharon2022botsort}
+N.~Aharon, R.~Orfaig, and B.-Z. Bobrov, ``Bot-sort: Robust associations
+  multi-pedestrian tracking,'' {\em arXiv preprint arXiv:2206.14651}, 2022.
+
+\bibitem{du2023strongsort}
+Y.~Du, Z.~Zhao, Y.~Song, Y.~Zhao, F.~Su, T.~Gong, and H.~Meng, ``Strongsort:
+  Make deepsort great again,'' {\em IEEE Transactions on Multimedia}, vol.~25,
+  pp.~8725--8737, 2023.
+
+\bibitem{redmon2017yolo9000}
+J.~Redmon and A.~Farhadi, ``Yolo9000: Better, faster, stronger,'' {\em IEEE/CVF
+  Conference on Computer Vision and Pattern Recognition (CVPR)},
+  pp.~7263--7271, 2017.
+
+\bibitem{redmon2018yolov3}
+J.~Redmon and A.~Farhadi, ``Yolov3: An incremental improvement,'' {\em arXiv
+  preprint arXiv:1804.02767}, 2018.
+
+\bibitem{bochkovskiy2020yolov4}
+A.~Bochkovskiy, C.-Y. Wang, and H.-Y.~M. Liao, ``Yolov4: Optimal speed and
+  accuracy of object detection,'' {\em arXiv preprint arXiv:2004.10934}, 2020.
+
+\bibitem{jocher2021yolov5}
+G.~Jocher {\em et~al.}, ``Yolov5,'' {\em GitHub Repository}, 2021.
+
+\bibitem{kuhn1955hungarian}
+H.~W. Kuhn, ``The hungarian method for the assignment problem,'' {\em Naval
+  Research Logistics Quarterly}, vol.~2, no.~1-2, pp.~83--97, 1955.
+
+\bibitem{munkres1957algorithms}
+J.~Munkres, ``Algorithms for the assignment and transportation problems,'' {\em
+  Journal of the Society for Industrial and Applied Mathematics}, vol.~5,
+  no.~1, pp.~32--38, 1957.
+
+\bibitem{xenova}
+Xenova, ``Transformers.js: State-of-the-art machine learning for the web,''
+  {\em GitHub Repository}, 2023.
+
+\bibitem{cao2023ocsort}
+J.~Cao, X.~Weng, R.~Khirodkar, J.~Pang, and K.~Kitani, ``Observation-centric
+  sort: Rethinking sort for robust multi-object tracking,'' {\em IEEE/CVF
+  Conference on Computer Vision and Pattern Recognition (CVPR)},
+  pp.~9686--9696, 2023.
+
+\bibitem{chen2023motiontrack}
+L.~Chen, H.~Ai, Z.~Zhuang, and C.~Shang, ``Motiontrack: Learning robust
+  short-term and long-term motions for multi-object tracking,'' {\em IEEE/CVF
+  Conference on Computer Vision and Pattern Recognition (CVPR)}, 2023.
+
+\bibitem{sun2020transtrack}
+P.~Sun, J.~Cao, Y.~Jiang, Z.~Yuan, S.~Bai, K.~Kitani, and P.~Luo, ``Transtrack:
+  Multiple object tracking with transformer,'' {\em arXiv preprint
+  arXiv:2012.15460}, 2020.
+
+\bibitem{milan2016mot16}
+A.~Milan, L.~Leal-Taixé, I.~Reid, S.~Roth, and K.~Schindler, ``Mot16: A
+  benchmark for multi-object tracking,'' {\em arXiv preprint arXiv:1603.00831},
+  2016.
+
+\bibitem{dendorfer2020mot20}
+P.~Dendorfer, H.~Rezatofighi, A.~Milan, J.~Shi, S.~Roth, K.~Schindler, and
+  I.~Reid, ``Mot20: A benchmark for multi-object tracking in crowded scenes,''
+  {\em arXiv preprint arXiv:2003.09003}, 2020.
+
+\bibitem{dave2020tao}
+A.~Dave, T.~Khurana, P.~Tokmakov, C.~Schmid, and D.~Ramanan, ``Tao: A
+  large-scale benchmark for tracking any object,'' {\em European Conference on
+  Computer Vision (ECCV)}, pp.~436--454, 2020.
+
+\bibitem{sun2022dancetrack}
+P.~Sun, J.~Cao, Y.~Jiang, R.~Zhang, Z.~Yuan, S.~Bai, K.~Kitani, and P.~Luo,
+  ``Dancetrack: Multi-object tracking in uniform appearance and diverse
+  motion,'' {\em IEEE/CVF Conference on Computer Vision and Pattern Recognition
+  (CVPR)}, pp.~20993--21002, 2022.
+
+\bibitem{bernardin2008evaluating}
+K.~Bernardin and R.~Stiefelhagen, ``Evaluating multiple object tracking
+  performance: The clear mot metrics,'' {\em EURASIP Journal on Image and Video
+  Processing}, vol.~2008, no.~1, pp.~1--10, 2008.
+
+\bibitem{luiten2021hota}
+J.~Luiten, A.~Osep, P.~Dendorfer, P.~Torr, A.~Geiger, L.~Leal-Taixé, and
+  B.~Leibe, ``Hota: A higher order metric for evaluating multi-object
+  tracking,'' {\em International Journal of Computer Vision}, vol.~129,
+  pp.~548--578, 2021.
+
+\end{thebibliography}

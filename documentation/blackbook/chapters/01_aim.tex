@@ -1,0 +1,43 @@
+% =====================================================================
+% CHAPTER 1: AIM
+% =====================================================================
+\chapter{Aim}
+\label{ch:aim}
+
+The aim of this project is to \textbf{design, implement, and evaluate a real-time, fully client-side multiple object tracking system capable of detecting, associating, and maintaining persistent object identities across consecutive video frames directly within a web browser}, without requiring any server-side computation or video upload.
+
+\vspace{0.5cm}
+
+\noindent The specific objectives are:
+
+\begin{enumerate}
+    \item \textbf{Client-side inference pipeline:} Implement a complete MOT pipeline (detection $\to$ NMS $\to$ ReID $\to$ tracking $\to$ visualization) using \onnxweb with hardware acceleration (WebNN $\to$ WebGPU $\to$ WebGL $\to$ WASM cascade), ensuring zero data leaves the user's device.
+    
+    \item \textbf{Dual detection modes:} Support both a fast, fixed-vocabulary mode (YOLOv8n, 80 COCO classes) and an open-vocabulary mode (YOLO-World + CLIP ViT-B/32 text embeddings) with in-browser tokenization and text encoding.
+    
+    \item \textbf{Custom ByteTrack++ tracker:} Implement a tracking-by-detection algorithm with:
+    \begin{itemize}
+        \item Full 6×6 covariance Kalman filter (constant acceleration model)
+        \item Hungarian algorithm for optimal data association
+        \item Track lifecycle management (TENTATIVE $\to$ CONFIRMED $\to$ LOST $\to$ REMOVED)
+        \item Appearance-based re-identification via OSNet x1.0 (512-dim embeddings)
+        \item EMA appearance fusion ($\alpha=0.3$) and track merging for split-identity recovery
+        \item EMA bounding-box smoothing ($\alpha=0.7$) and occlusion interpolation (up to 5 frames)
+    \end{itemize}
+    
+    \item \textbf{Browser-native video acquisition:} Capture live camera feed via \texttt{getUserMedia()} and process frames using \texttt{OffscreenCanvas} at 640×640 letterboxed resolution with zero-copy buffer transfer to workers.
+    
+    \item \textbf{Real-time telemetry and history:} Provide per-frame latency breakdown (preprocess, inference, postprocess, tracking, render), FPS monitoring, 5-minute rolling history with frame-perfect replay, and persistent track metadata (trajectories, distance, speed, bearing).
+    
+    \item \textbf{Comprehensive UI/UX:} Implement a responsive Command Center with Ghost mode (trajectory trails), Follow mode (target lock), Time Machine (history scrubber), Scene Map (2D density), Analytics (class distribution, volume charts), and Command Palette.
+    
+    \item \textbf{Validation and deployment:} Achieve 49 passing unit tests covering Kalman filtering, Hungarian matching, ByteTrack lifecycle, appearance fusion, NMS, and store history; produce a production build deployable to static hosts (Netlify, Vercel, Cloudflare Pages) with required COOP/COEP headers.
+\end{enumerate}
+
+\vspace{0.5cm}
+
+\noindent The system is evaluated through implementation-level tests, runtime microbenchmarks, telemetry observation, and qualitative tracking behavior assessment. Standardized MOT benchmark metrics (MOTA, IDF1, HOTA) are \textbf{not computed} in the current implementation due to the absence of a formal annotated dataset; this is documented as a limitation and future work direction.
+
+\vspace{0.5cm}
+
+\noindent \textbf{Scope:} The project demonstrates that a complete, production-quality MOT system can run entirely in-browser using modern web APIs and ONNX Runtime Web, achieving real-time performance on consumer hardware while preserving user privacy and eliminating server costs.

@@ -1,0 +1,108 @@
+% =====================================================================
+% CHAPTER 2: INTRODUCTION
+% =====================================================================
+\chapter{Introduction}
+\label{ch:introduction}
+
+\section{Computer Vision}
+\label{sec:cv}
+
+Computer Vision (CV) is an interdisciplinary field that enables computers to derive meaningful understanding from digital images or videos. It seeks to automate tasks that the human visual system performs effortlessly: identifying objects, recognizing scenes, detecting motion, and understanding spatial relationships. Over the past decade, deep learning — particularly Convolutional Neural Networks (CNNs) — has revolutionized CV, achieving superhuman performance on benchmarks such as ImageNet classification \cite{russakovsky2015imagenet}, COCO object detection \cite{lin2014coco}, and KITTI autonomous driving \cite{geiger2012kitti}.
+
+\section{Video Analysis}
+\label{sec:video-analysis}
+
+Video analysis extends CV from static images to temporal sequences. A video is a sequence of frames, typically captured at 24--60 FPS, where each frame is correlated with its neighbors. The temporal dimension introduces both challenges (motion blur, occlusion, appearance change) and opportunities (motion cues, track continuity, action recognition). Core video analysis tasks include action recognition, video object segmentation, and multiple object tracking.
+
+\section{Object Detection}
+\label{sec:object-detection}
+
+Object detection answers the question: \textit{``What objects are present in this frame, and where?''} Given an image, a detector outputs a set of bounding boxes with class labels and confidence scores. Modern detectors fall into two families:
+
+\begin{itemize}
+    \item \textbf{Two-stage detectors} (R-CNN \cite{girshick2014rcnn}, Faster R-CNN \cite{ren2015faster}): Region proposal $\to$ classification/regression. High accuracy, slower.
+    \item \textbf{Single-stage detectors} (YOLO \cite{redmon2016yolo}, SSD \cite{liu2016ssd}, RetinaNet \cite{lin2017retinanet}): Direct prediction from dense grid. Faster, suitable for real-time.
+\end{itemize}
+
+YOLO (You Only Look Once) pioneered real-time detection by framing it as a single regression problem. YOLOv8 \cite{jocher2023ultralytics} represents the current state-of-the-art in the YOLO lineage, offering improved accuracy-speed tradeoffs and a unified architecture for detection, segmentation, and pose estimation.
+
+\section{Object Tracking}
+\label{sec:object-tracking}
+
+Object tracking answers: \textit{``Where did the object detected in the previous frame go?''} Unlike detection (per-frame, independent), tracking maintains \textit{identity} across time.
+
+\subsection{Single Object Tracking (SOT)}
+\label{sec:sot}
+SOT initializes with a ground-truth bounding box in frame 1 and predicts the target's location in subsequent frames. Approaches include correlation filters (MOSSE \cite{bolme2010mosse}, CSRT \cite{lukezic2017csrt}) and Siamese networks (SiamFC \cite{bertinetto2016siamfc}, SiamRPN \cite{li2018siamrpn}). SOT assumes the target is always present and does not handle multiple objects or identity assignment.
+
+\subsection{Multiple Object Tracking (MOT)}
+\label{sec:mot}
+MOT extends SOT to \textit{multiple simultaneous objects} with \textit{unknown and variable count}. The core challenge is \textbf{data association}: given detections in frame $t$ and tracks from frame $t-1$, which detection belongs to which track? MOT systems typically follow the \textbf{tracking-by-detection} paradigm:
+
+\begin{enumerate}
+    \item Detect objects in each frame independently.
+    \item Associate detections across frames to form trajectories.
+    \item Manage track lifecycle (initialization, confirmation, loss, deletion).
+\end{enumerate}
+
+The distinction is fundamental:
+\begin{quote}
+\textbf{Object detection} answers: ``What objects are present in \textit{this} frame?'' \\
+\textbf{Multiple object tracking} answers: ``Which detected object corresponds to \textit{which previously observed object}?''
+\end{quote}
+
+\section{Problem Statement}
+\label{sec:problem}
+
+Despite advances in MOT algorithms, \textbf{deployment remains a barrier}. Most MOT systems:
+\begin{itemize}
+    \item Require server-grade GPUs (CUDA, cuDNN, TensorRT).
+    \item Necessitate video upload (bandwidth, latency, privacy).
+    \item Depend on complex Python/C++ stacks (PyTorch, TensorFlow, OpenCV).
+    \item Lack cross-platform accessibility (Windows/Linux/macOS, mobile).
+\end{itemize}
+
+There is a need for a \textbf{zero-installation, privacy-preserving, cross-platform MOT system} that runs entirely on the client device using only standard web APIs.
+
+\section{Motivation}
+\label{sec:motivation}
+
+\begin{enumerate}
+    \item \textbf{Privacy:} Video data never leaves the device. Critical for surveillance, healthcare, retail analytics.
+    \item \textbf{Latency:} No network round-trip. Enables real-time interactive applications (AR, robotics, gaming).
+    \item \textbf{Accessibility:} Runs in any modern browser (Chrome, Edge, Firefox, Safari) on desktop or mobile.
+    \item \textbf{Cost:} Zero server infrastructure. Scales to millions of users with static hosting.
+    \item \textbf{WebGPU:} Emerging standard exposes GPU compute to the web, enabling near-native inference speed.
+\end{enumerate}
+
+\section{Objectives}
+\label{sec:objectives}
+
+\begin{enumerate}
+    \item Implement a client-side MOT pipeline with YOLOv8n (fast) and YOLO-World + CLIP (open-vocabulary) detection.
+    \item Develop a custom ByteTrack++ tracker in TypeScript with full covariance Kalman filtering and Hungarian association.
+    \item Integrate OSNet x1.0 ReID for appearance-based occlusion recovery.
+    \item Build a responsive web UI with real-time telemetry, history replay, and multiple visualization modes.
+    \item Validate core algorithms with 49 unit tests; measure pipeline performance.
+    \item Deploy as a static PWA with WebGPU acceleration and HTTPS support for mobile camera access.
+\end{enumerate}
+
+\section{Scope}
+\label{sec:scope}
+
+\begin{itemize}
+    \item \textbf{In scope:} Real-time browser MOT, dual detection modes, custom tracker, ReID, UI/UX, deployment.
+    \item \textbf{Out of scope:} Standardized MOT benchmark evaluation (MOTA/IDF1/HOTA), video file upload (camera only), server-side components, 3D tracking, pose estimation, action recognition.
+\end{itemize}
+
+\section{Project Contribution}
+\label{sec:contribution}
+
+This project contributes a \textbf{complete, production-grade, client-side MOT system} implemented in TypeScript/React that demonstrates:
+\begin{itemize}
+    \item The feasibility of running YOLO + ByteTrack + Kalman + ReID entirely in-browser via ONNX Runtime Web.
+    \item A novel open-vocabulary detection path using in-browser CLIP text encoding (no external embedding service).
+    \item A clean, typed Web Worker architecture with typed message protocols.
+    \item Comprehensive UI/UX for MOT visualization and analysis.
+    \item Open-source deployment model (static hosting, Docker, MIT license).
+\end{itemize}

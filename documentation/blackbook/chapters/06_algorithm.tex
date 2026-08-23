@@ -1,0 +1,303 @@
+% =====================================================================
+% CHAPTER 6: ALGORITHM / FLOWCHART
+% =====================================================================
+\chapter{Algorithm / Flowchart}
+\label{ch:algorithm}
+
+This chapter presents the core algorithms implemented in TrackVision: the Kalman filter, Hungarian assignment, ByteTrack++ association pipeline, and ReID fusion. All algorithms are transcribed directly from the TypeScript implementation.
+
+\section{Kalman Filter (Full 6×6 Covariance)}
+\label{sec:kf-alg}
+
+The Kalman filter maintains a state vector $\mathbf{x} \in \mathbb{R}^6$ and covariance matrix $\mathbf{P} \in \mathbb{R}^{6 \times 6}$.
+
+\subsection{State Definition}
+\[
+\mathbf{x} = \begin{bmatrix} x & y & v_x & v_y & w & h \end{bmatrix}^T
+\]
+where $(x,y)$ is the box center, $(v_x, v_y)$ velocity, $(w,h)$ width and height.
+
+\subsection{State Transition (Predict)}
+\[
+\mathbf{F} = \begin{bmatrix}
+1 & 0 & \Delta t & 0 & 0 & 0 \\
+0 & 1 & 0 & \Delta t & 0 & 0 \\
+0 & 0 & 1 & 0 & 0 & 0 \\
+0 & 0 & 0 & 1 & 0 & 0 \\
+0 & 0 & 0 & 0 & 1 & 0 \\
+0 & 0 & 0 & 0 & 0 & 1
+\end{bmatrix}, \quad
+\mathbf{x}_{k|k-1} = \mathbf{F} \mathbf{x}_{k-1|k-1}
+\]
+
+Process noise $\mathbf{Q}$ models constant acceleration uncertainty:
+\[
+\mathbf{Q} = q \begin{bmatrix}
+\frac{\Delta t^4}{4} & 0 & \frac{\Delta t^3}{2} & 0 & 0 & 0 \\
+0 & \frac{\Delta t^4}{4} & 0 & \frac{\Delta t^3}{2} & 0 & 0 \\
+\frac{\Delta t^3}{2} & 0 & \Delta t^2 & 0 & 0 & 0 \\
+0 & \frac{\Delta t^3}{2} & 0 & \Delta t^2 & 0 & 0 \\
+0 & 0 & 0 & 0 & 0.01 & 0 \\
+0 & 0 & 0 & 0 & 0 & 0.01
+\end{bmatrix}
+\]
+\[
+\mathbf{P}_{k|k-1} = \mathbf{F} \mathbf{P}_{k-1|k-1} \mathbf{F}^T + \mathbf{Q}
+\]
+
+Velocity is clamped to $\pm 1000$ px/frame to prevent runaway predictions.
+
+\subsection{Measurement Update}
+Measurement vector $\mathbf{z} = [m_x, m_y, 0, 0, m_w, m_h]^T$ (position + size; velocity not measured).
+
+Measurement matrix $\mathbf{H}$ maps state to measurement space:
+\[
+\mathbf{H} = \begin{bmatrix}
+1 & 0 & 0 & 0 & 0 & 0 \\
+0 & 1 & 0 & 0 & 0 & 0 \\
+0 & 0 & 0 & 0 & 0 & 0 \\
+0 & 0 & 0 & 0 & 0 & 0 \\
+0 & 0 & 0 & 0 & 1 & 0 \\
+0 & 0 & 0 & 0 & 0 & 1
+\end{bmatrix}
+\]
+
+Measurement noise $\mathbf{R}$ (diagonal):
+\[
+\mathbf{R} = \text{diag}(r, r, 1, 1, r, r), \quad r = \text{measurementNoise}
+\]
+
+Innovation: $\mathbf{y} = \mathbf{z} - \mathbf{H}\mathbf{x}_{k|k-1}$
+
+Innovation covariance: $\mathbf{S} = \mathbf{H}\mathbf{P}_{k|k-1}\mathbf{H}^T + \mathbf{R}$
+
+Kalman gain: $\mathbf{K} = \mathbf{P}_{k|k-1}\mathbf{H}^T \mathbf{S}^{-1}$
+
+State update: $\mathbf{x}_{k|k} = \mathbf{x}_{k|k-1} + \mathbf{K}\mathbf{y}$
+
+Covariance update: $\mathbf{P}_{k|k} = (\mathbf{I} - \mathbf{K}\mathbf{H})\mathbf{P}_{k|k-1}$
+
+\subsection{Matrix Inversion}
+$\mathbf{S}^{-1}$ is computed via Gaussian elimination (6×6) in \texttt{KalmanFilter.matrixInverse()}. If singular, identity is returned as fallback.
+
+\section{Hungarian Algorithm (Kuhn-Munkres)}
+\label{sec:hungarian-alg}
+
+Solves the assignment problem: minimize $\sum_{i,j} C_{ij} x_{ij}$ subject to each track/detection assigned at most once.
+
+\subsection{Algorithm Outline}
+\begin{algorithm}
+\caption{Hungarian Algorithm (Square Cost Matrix)}
+\begin{algorithmic}
+\Procedure{Hungarian}{$C \in \mathbb{R}^{n \times n}$}
+\State $u, v \gets \mathbf{0}_{n+1}$ \Comment{dual variables}
+\State $p, way \gets \mathbf{0}_{n+1}$
+\For{$i = 1 \dots n$}
+    \State $p[0] \gets i$, $minv \gets \infty_{n+1}$, $used \gets \text{false}_{n+1}$, $j_0 \gets 0$
+    \Repeat
+        \State $used[j_0] \gets \text{true}$
+        \State $i_0 \gets p[j_0]$, $\delta \gets \infty$, $j_1 \gets 0$
+        \For{$j = 1 \dots n$}
+            \If{$\neg used[j]$}
+                \State $cur \gets C[i_0-1][j-1] - u[i_0] - v[j]$
+                \If{$cur < minv[j]$} $minv[j] \gets cur$, $way[j] \gets j_0$
+                \If{$minv[j] < \delta$} $\delta \gets minv[j]$, $j_1 \gets j$
+            \EndIf
+        \EndFor
+        \For{$j = 0 \dots n$}
+            \If{$used[j]$} $u[p[j]] \gets u[p[j]] + \delta$, $v[j] \gets v[j] - \delta$
+            \Else $minv[j] \gets minv[j] - \delta$
+        \EndFor
+        \State $j_0 \gets j_1$
+    \Until{$p[j_0] = 0$}
+    \Repeat
+        \State $j_1 \gets way[j_0]$, $p[j_0] \gets p[j_1]$, $j_0 \gets j_1$
+    \Until{$j_0 = 0$}
+\EndFor
+\State \Return $\{(p[j]-1, j-1, C[p[j]-1][j-1]) \mid j=1..n, p[j] \neq 0\}$
+\EndProcedure
+\end{algorithmic}
+\end{algorithm}
+
+\subsection{Gating and Rectangular Matrices}
+For $n_{tracks} \neq n_{dets}$, the cost matrix is padded to square with cost $10^6$ (infinite). Assignments with cost $> \text{maxCost}$ are discarded.
+
+\section{ByteTrack++ Association Pipeline}
+\label{sec:bytetrack-pipeline}
+
+The \texttt{ByteTracker.update(detections)} method implements four stages:
+
+\begin{algorithm}
+\caption{ByteTrack++ Update (Per Frame)}
+\begin{algorithmic}
+\Procedure{Update}{$detections$}
+\ForAll{$track \in tracks$} \Comment{Predict all}
+    \State $track.predict()$
+\EndFor
+
+\State $high \gets \{d \in detections \mid d.score \ge \text{trackThresh}\}$
+\State $low \gets \{d \in detections \mid 0.1 < d.score < \text{trackThresh}\}$
+
+\Comment{Stage 1: High-confidence association}
+\State $result_1 \gets \text{Hungarian}(tracks, high, \text{matchThresh})$
+\ForAll{$(t,d) \in result_1.matched$}
+    \State $tracks[t].update(high[d])$
+\EndFor
+
+\Comment{Stage 2: Low-confidence association}
+\State $remaining \gets result_1.unmatchedTracks$
+\State $result_2 \gets \text{Hungarian}(tracks[remaining], low, \text{matchThresh})$
+\ForAll{$(t,d) \in result_2.matched$}
+    \State $tracks[remaining[t]].update(low[d])$
+\EndFor
+
+\Comment{Stage 3: New tracks from unmatched high-conf}
+\ForAll{$d \in result_1.unmatchedDetections$}
+    \State $tracks.push(\text{new Track}(high[d]))$
+\EndFor
+
+\Comment{Stage 4: Mark missed}
+\ForAll{$t \in result_2.unmatchedTracks$}
+    \State $tracks[remaining[t]].markMissed()$
+\EndFor
+
+\State $\text{MergeSimilarTracks()}$ \Comment{Split identity recovery}
+
+\State \Return $tracks.filter(\neg deleted)$
+\EndProcedure
+\end{algorithmic}
+\end{algorithm}
+
+\section{Cost Matrix Composition}
+\label{sec:cost-matrix-detail}
+
+For each track $i$ and detection $j$:
+
+\begin{align}
+\text{iou} &= \text{IoU}(predBBox_i, detBBox_j) \\
+\text{iouCost} &= 1 - \text{iou} \\
+\text{classCost} &= \begin{cases} 0 & \text{if } class_i = class_j \\ 0.4 & \text{otherwise} \end{cases} \\
+\text{centerDist} &= \| center(predBBox_i) - center(detBBox_j) \|_2 \\
+\text{centerCost} &= \min\left(1, \frac{\text{centerDist}}{2 \cdot \max(\text{dims})}\right)
+\end{align}
+
+If both have embeddings:
+\begin{align}
+\text{appCost} &= 1 - \max(0, \text{cosineSim}(emb_i, emb_j)) \\
+\text{combinedCost} &= 0.6 \cdot \text{iouCost} + 0.3 \cdot \text{appCost} + 0.1 \cdot \text{classCost} + 0.1 \cdot \text{centerCost}
+\end{align}
+
+Otherwise (no embeddings):
+\[
+\text{combinedCost} = 0.8 \cdot \text{iouCost} + 0.15 \cdot \text{centerCost} + 0.05 \cdot \text{classCost}
+\]
+
+Gating: if $\text{combinedCost} > 1 - \text{matchThresh}$ (default 0.3), set to $10^6$.
+
+\section{ReID Embedding Fusion}
+\label{sec:reid-fusion}
+
+When a track with embedding $e_{old}$ receives a detection with embedding $e_{new}$:
+
+\[
+e_{fused} = \text{normalize}((1-\alpha) e_{old} + \alpha e_{new}), \quad \alpha = 0.3
+\]
+
+Normalization: $e \leftarrow e / \|e\|_2$ (L2 projection onto unit hypersphere).
+
+During track merging (same class, IoU > 0.5, app sim > 0.7), the older track absorbs the younger with the same EMA fusion.
+
+\section{Track Lifecycle State Machine}
+\label{sec:lifecycle-alg}
+
+\begin{center}
+\begin{tikzpicture}[node distance=2.5cm, auto]
+    \node[state, initial] (tent) {TENTATIVE};
+    \node[state] (conf) [right of=tent] {CONFIRMED};
+    \node[state] (lost) [right of=conf] {LOST};
+    \node[state] (rem) [right of=lost] {REMOVED};
+
+    \path[->] (tent) edge[bend left] node[above] {hits $\ge$ 3 $\lor$ confirmedHits $\ge$ 2} (conf)
+              (conf) edge[bend left] node[above] {timeSinceUpdate > 5} (lost)
+              (lost) edge[bend left] node[above] {timeSinceUpdate > 30} (rem)
+              (lost) edge[bend left=60] node[below] {re-associated} (conf)
+              (rem) edge[loop above] node {terminal} (rem);
+\end{tikzpicture}
+\end{center}
+
+\begin{itemize}
+    \item \texttt{hits}: total associated detections
+    \item \texttt{confirmedHits}: associated detections with $score \ge 0.7$
+    \item \texttt{timeSinceUpdate}: frames since last successful association
+    \item \texttt{maxTimeLost} = 30 (configurable)
+\end{itemize}
+
+\section{Flowchart: End-to-End Frame Processing}
+\label{sec:flowchart}
+
+\begin{center}
+\begin{tikzpicture}[
+    node distance=1.6cm,
+    auto,
+    block/.style={rectangle, draw=trackvisionblue, thick, rounded corners, minimum width=2.2cm, minimum height=1.1cm, text centered, font=\small, fill=white},
+    decision/.style={diamond, draw=trackvisionblue, thick, aspect=2, minimum width=2.5cm, minimum height=1.2cm, text centered, font=\small, fill=white},
+    startstop/.style={ellipse, draw=trackvisionblue, thick, minimum width=2cm, minimum height=1cm, text centered, font=\small, fill=white},
+    arrow/.style={->, thick, >=Stealth, trackvisionblue}
+]
+    \node[startstop] (in) {Video Frame};
+    \node[block] (cap) [below of=in] {OffscreenCanvas Capture\\640x640 Letterboxed};
+    \node[decision] (mode) [below of=cap] {Vision Mode?};
+    \node[block] (fast) [left of=mode, xshift=-2.8cm] {YOLOv8n Detection};
+    \node[block] (open) [right of=mode, xshift=2.8cm] {YOLO-World + CLIP\\Text Encoding};
+    \node[block] (nms) [below of=mode] {Class-Aware NMS\\IoU 0.45};
+    \node[decision] (reid) [below of=nms] {ReID Ready?};
+    \node[block] (reidproc) [left of=reid, xshift=-2.8cm] {OSNet Batch-1\\Embedding Extraction};
+    \node[block] (track) [below of=reid] {ByteTrack++ UPDATE};
+    \node[block] (stages) [below of=track] {4-Stage Association\\\& Lifecycle};
+    \node[block] (merge) [below of=stages] {Track Merging};
+    \node[block] (store) [below of=merge] {Store: Frame + Tracks\\\& Telemetry};
+    \node[block] (render) [below of=store] {Canvas Overlay Render};
+    \node[startstop] (out) [below of=render] {Next Frame (rAF)};
+
+    \draw[arrow] (in) -- (cap);
+    \draw[arrow] (cap) -- (mode);
+    \draw[arrow] (mode) -- node[above] {Fast} (fast);
+    \draw[arrow] (mode) -- node[above] {Open} (open);
+    \draw[arrow] (fast) -- (nms);
+    \draw[arrow] (open) -- (nms);
+    \draw[arrow] (nms) -- (reid);
+    \draw[arrow] (reid) -- node[above] {Yes} (reidproc);
+    \draw[arrow] (reid) -- node[left] {No} (track);
+    \draw[arrow] (reidproc) -- (track);
+    \draw[arrow] (track) -- (stages);
+    \draw[arrow] (stages) -- (merge);
+    \draw[arrow] (merge) -- (store);
+    \draw[arrow] (store) -- (render);
+    \draw[arrow] (render) -- (out);
+    \draw[arrow] (out) -| node[near start] {Loop} (in);
+\end{tikzpicture}
+\end{center}
+
+\section{Computational Complexity}
+\label{sec:complexity}
+
+\begin{table}[htbp]
+\centering
+\caption{Per-frame computational complexity (asymptotic)}
+\label{tab:complexity}
+\begin{tabular}{@{}ll@{}}
+\toprule
+\textbf{Component} & \textbf{Complexity} \\
+\midrule
+YOLOv8n Inference & $O(1)$ (fixed 640×640 input, model-dependent) \\
+Class-Aware NMS & $O(N \log N)$ per class ($N$ = detections) \\
+OSNet ReID (per crop) & $O(1)$ (fixed 256×128, sequential batch-1) \\
+Kalman Predict/Update & $O(1)$ per track (6×6 matrix ops) \\
+Hungarian Assignment & $O((T+D)^3)$ ($T$ tracks, $D$ detections) \\
+Track Merging & $O(T^2)$ pairwise IoU \\
+EMA Smoothing & $O(T)$ \\
+\bottomrule
+\end{tabular}
+\end{table}
+
+Practical bottleneck: \textbf{Model inference} (YOLO/OSNet/CLIP) dominates frame time. JS-side tracking pipeline: \textbf{0.31–1.04 ms/frame} at 5–20 detections (Vitest benchmark, Node 22).

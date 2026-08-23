@@ -1,0 +1,330 @@
+\documentclass[10pt,a4paper,oneside]{report}
+
+% =====================================================================
+% PACKAGES
+% =====================================================================
+\usepackage[utf8]{inputenc}
+\usepackage[T1]{fontenc}
+\usepackage[english]{babel}
+\usepackage{geometry}
+\usepackage{graphicx}
+\usepackage{caption}
+\usepackage{subcaption}
+\usepackage{booktabs}
+\usepackage{longtable}
+\usepackage{array}
+\usepackage{multirow}
+\usepackage{makecell}
+\usepackage{float}
+\usepackage{amsmath}
+\usepackage{amssymb}
+\usepackage{amsfonts}
+\usepackage{mathtools}
+\usepackage{algorithm}
+\usepackage{algpseudocode}
+\usepackage{tikz}
+\usepackage{pgfplots}
+\usepackage{pgfplotstable}
+\usepackage{listings}
+\usepackage{xcolor}
+\usepackage{hyperref}
+\usepackage{cleveref}
+\usepackage{acronym}
+\usepackage{enumitem}
+\usepackage{setspace}
+\usepackage{titlesec}
+\usepackage{fancyhdr}
+\usepackage{lastpage}
+\usepackage{csquotes}
+\usepackage{textcomp}
+\usepackage{newunicodechar}
+\usepackage{etoolbox}
+
+% =====================================================================
+% UNICODE CHARACTER SUPPORT
+% =====================================================================
+\newunicodechar{✅}{\textbullet\ }
+\newunicodechar{⚠}{\textasteriskcentered\ }
+\newunicodechar{⚠️}{\textasteriskcentered\ }
+\newunicodechar{✓}{\textbullet}
+\newunicodechar{α}{\ensuremath{\alpha}}
+\newunicodechar{≥}{\ensuremath{\geq}}
+\newunicodechar{≤}{\ensuremath{\leq}}
+\newunicodechar{→}{\ensuremath{\rightarrow}}
+\newunicodechar{×}{\ensuremath{\times}}
+\newunicodechar{–}{\textendash}
+\newunicodechar{—}{\textemdash}
+\newunicodechar{·}{\textperiodcentered}
+\newunicodechar{♯}{\#}
+\newunicodechar{♥}{\textheartsuit}
+\newunicodechar{★}{\textasteriskcentered}
+
+% =====================================================================
+% GEOMETRY & LAYOUT
+% =====================================================================
+\usepackage{geometry}
+\geometry{
+    a4paper,
+    left=25mm,
+    right=25mm,
+    top=25mm,
+    bottom=25mm,
+    headheight=14pt,
+    headsep=8mm,
+    footskip=12mm
+}
+
+\usepackage{setspace}
+\setstretch{1.15}
+\setlength{\parindent}{1em}
+\setlength{\parskip}{0.3em}
+
+% =====================================================================
+% COLORS
+% =====================================================================
+\definecolor{trackvisionblue}{RGB}{0, 100, 170}
+\definecolor{trackvisiondark}{RGB}{30, 30, 30}
+\definecolor{trackvisiongray}{RGB}{80, 80, 80}
+\definecolor{codebg}{RGB}{248, 248, 248}
+\definecolor{keyword}{RGB}{0, 0, 140}
+\definecolor{comment}{RGB}{0, 110, 0}
+\definecolor{string}{RGB}{150, 0, 0}
+\definecolor{number}{RGB}{0, 0, 180}
+\definecolor{rowcolor}{RGB}{240, 245, 250}
+
+% =====================================================================
+% TITLE FORMATTING - SIMPLE, NO NESTED TITLES
+% =====================================================================
+\titleformat{\chapter}[display]
+    {\normalfont\Large\bfseries\color{trackvisiondark}}
+    {\MakeUppercase{\chaptertitlename}\ \thechapter}
+    {10pt}
+    {\titlerule[1pt]\vspace{6pt}\centering}
+    [\vspace{4pt}\titlerule[0.5pt]]
+
+\titleformat{\section}
+    {\normalfont\large\bfseries\color{trackvisiondark}}
+    {\thesection}{0.6em}{}
+
+\titleformat{\subsection}
+    {\normalfont\normalsize\bfseries\color{trackvisionblue}}
+    {\thesubsection}{0.6em}{}
+
+\titleformat{\subsubsection}
+    {\normalfont\small\bfseries\color{trackvisionblue}}
+    {\thesubsubsection}{0.6em}{}
+
+% =====================================================================
+% LISTINGS CONFIGURATION - WITH JAVASCRIPT/TYPESCRIPT SUPPORT
+% =====================================================================
+\usepackage{listings}
+\lstdefinelanguage{TypeScript}{
+    morekeywords={abstract, as, async, await, boolean, break, case, catch, class, const, continue, debugger, declare, default, delete, do, else, enum, export, extends, false, finally, for, from, function, get, if, implements, import, in, instanceof, interface, let, module, namespace, never, new, null, number, of, package, private, protected, public, readonly, return, set, static, string, super, switch, symbol, this, throw, true, try, type, typeof, undefined, var, void, while, with, yield, async, await, of, type, keyof, infer, unknown, any, never, bigint, constructor, static, get, set, infer, keyof, declare, declare, type, interface, enum, implements, extends, public, private, protected, readonly, abstract, override, static, async, await},
+    sensitive=true,
+    morecomment=[l]{//},
+    morecomment=[s]{/*}{*/},
+    morestring=[b]",
+    morestring=[b]',
+    morestring=[b]`,
+}
+\lstdefinestyle{typescript}{
+    language=TypeScript,
+    backgroundcolor=\color{codebg},
+    basicstyle=\ttfamily\scriptsize,
+    keywordstyle=\color{keyword}\bfseries,
+    commentstyle=\color{comment}\itshape,
+    stringstyle=\color{string},
+    numberstyle=\color{number}\tiny,
+    numbers=left,
+    numbersep=3pt,
+    stepnumber=1,
+    numberfirstline=true,
+    frame=single,
+    framesep=3pt,
+    rulecolor=\color{trackvisionblue!20},
+    breaklines=true,
+    breakatwhitespace=false,
+    tabsize=2,
+    showspaces=false,
+    showstringspaces=false,
+    columns=fullflexible,
+    keepspaces=true,
+    linewidth=\linewidth,
+    xleftmargin=0pt,
+    xrightmargin=0pt,
+}
+\lstdefinestyle{pseudocode}{
+    basicstyle=\ttfamily\scriptsize,
+    keywordstyle=\color{keyword}\bfseries,
+    commentstyle=\color{comment}\itshape,
+    numbers=left,
+    numbersep=3pt,
+    frame=single,
+    framesep=3pt,
+    rulecolor=\color{trackvisionblue!20},
+    breaklines=true,
+    tabsize=2,
+    linewidth=\linewidth,
+}
+
+% =====================================================================
+% TIKZ/PGFPLOTS CONFIGURATION
+% =====================================================================
+\usepackage{pgfplots}
+\pgfplotsset{compat=1.18}
+\usetikzlibrary{
+    shapes.geometric,
+    shapes.arrows,
+    arrows.meta,
+    positioning,
+    fit,
+    backgrounds,
+    calc,
+    decorations.pathreplacing,
+    calligraphy,
+    shadows,
+    matrix,
+    chains,
+    arrows
+}
+
+% =====================================================================
+% HYPERREF CONFIGURATION
+% =====================================================================
+\usepackage{hyperref}
+\hypersetup{
+    colorlinks=true,
+    linkcolor=trackvisionblue,
+    filecolor=trackvisionblue,
+    urlcolor=trackvisionblue,
+    citecolor=trackvisionblue,
+    pdfauthor={TrackVision Team},
+    pdfsubject={Unit 2 Computer Vision Mini Project - Multiple Object Tracking in Video},
+    pdfkeywords={Computer Vision, Multiple Object Tracking, ByteTrack, YOLO, Kalman Filter, ONNX Runtime Web},
+    pdftitle={TrackVision: Real-time Client-Side Multiple Object Tracking},
+    pdfproducer={LaTeX with pdfTeX},
+    bookmarksopen=true,
+    bookmarksdepth=3
+}
+
+% =====================================================================
+% FANCY HEADERS
+% =====================================================================
+\usepackage{fancyhdr}
+\pagestyle{fancy}
+\fancyhf{}
+\fancyhead[L]{\nouppercase{\leftmark}}
+\fancyhead[R]{\thepage}
+\fancyfoot[C]{}
+\renewcommand{\headrulewidth}{0.4pt}
+\renewcommand{\footrulewidth}{0pt}
+
+\fancypagestyle{plain}{
+    \fancyhf{}
+    \fancyfoot[C]{\thepage}
+    \renewcommand{\headrulewidth}{0pt}
+}
+
+% =====================================================================
+% CUSTOM COMMANDS
+% =====================================================================
+\newcommand{\todo}[1]{\textcolor{red}{[TODO: #1]}}
+\newcommand{\placeholder}[1]{\textcolor{red}{[INSERT SCREENSHOT: #1]}}
+\newcommand{\trackvision}{\textsc{TrackVision}}
+\newcommand{\bytetrack}{\textsc{ByteTrack++}}
+\newcommand{\yolo}{\textsc{YOLOv8n}}
+\newcommand{\yoloworld}{\textsc{YOLO-World}}
+\newcommand{\clip}{\textsc{CLIP} ViT-B/32}
+\newcommand{\osnet}{\textsc{OSNet} x1.0}
+\newcommand{\onnxweb}{\textsc{ONNX} Runtime Web}
+\newcommand{\webgpu}{WebGPU}
+\newcommand{\wasm}{WASM}
+\newcommand{\webnn}{WebNN}
+\newcommand{\webgl}{WebGL}
+\newcommand{\e}{\ensuremath{\epsilon}}
+\newcommand{\R}{\mathbb{R}}
+
+% =====================================================================
+% ACRONYMS
+% =====================================================================
+\usepackage{acronym}
+\acrodef{MOT}[MOT]{Multiple Object Tracking}
+\acrodef{SOT}[SOT]{Single Object Tracking}
+\acrodef{YOLO}[YOLO]{You Only Look Once}
+\acrodef{CNN}[CNN]{Convolutional Neural Network}
+\acrodef{RNN}[RNN]{Recurrent Neural Network}
+\acrodef{KF}[KF]{Kalman Filter}
+\acrodef{EKF}[EKF]{Extended Kalman Filter}
+\acrodef{UKF}[UKF]{Unscented Kalman Filter}
+\acrodef{IOU}[IoU]{Intersection over Union}
+\acrodef{NMS}[NMS]{Non-Maximum Suppression}
+\acrodef{ReID}[ReID]{Re-Identification}
+\acrodef{CLIP}[CLIP]{Contrastive Language-Image Pre-training}
+\acrodef{BPE}[BPE]{Byte Pair Encoding}
+\acrodef{API}[API]{Application Programming Interface}
+\acrodef{UI}[UI]{User Interface}
+\acrodef{FPS}[FPS]{Frames Per Second}
+\acrodef{GPU}[GPU]{Graphics Processing Unit}
+\acrodef{CPU}[CPU]{Central Processing Unit}
+\acrodef{RAM}[RAM]{Random Access Memory}
+\acrodef{SSD}[SSD]{Solid State Drive}
+\acrodef{HTTP}[HTTP]{Hypertext Transfer Protocol}
+\acrodef{HTTPS}[HTTPS]{Hypertext Transfer Protocol Secure}
+\acrodef{JSON}[JSON]{JavaScript Object Notation}
+\acrodef{HTML}[HTML]{Hypertext Markup Language}
+\acrodef{CSS}[CSS]{Cascading Style Sheets}
+\acrodef{DOM}[DOM]{Document Object Model}
+\acrodef{WASM}[WASM]{WebAssembly}
+\acrodef{SIMD}[SIMD]{Single Instruction Multiple Data}
+\acrodef{EP}[EP]{Execution Provider}
+\acrodef{PWA}[PWA]{Progressive Web App}
+\acrodef{CI}[CI]{Continuous Integration}
+\acrodef{CD}[CD]{Continuous Deployment}
+
+% =====================================================================
+% TABLES - PROFESSIONAL STYLING
+% =====================================================================
+\newcommand{\tablerowcolors}{\rowcolors{2}{rowcolor}{white}}
+
+% =====================================================================
+% DOCUMENT START
+% =====================================================================
+\begin{document}
+
+% =====================================================================
+% FRONT MATTER
+% =====================================================================
+\input{chapters/00_frontmatter}
+
+% =====================================================================
+% TABLE OF CONTENTS
+% =====================================================================
+\tableofcontents
+\newpage
+\listoffigures
+\newpage
+\listoftables
+\newpage
+
+% =====================================================================
+% MAIN CHAPTERS
+% =====================================================================
+\input{chapters/01_aim}
+\input{chapters/02_introduction}
+\input{chapters/03_literature_review}
+\input{chapters/04_dataset}
+\input{chapters/05_methodology}
+\input{chapters/06_algorithm}
+\input{chapters/07_source_code}
+\input{chapters/08_output}
+\input{chapters/09_results}
+\input{chapters/10_applications}
+\input{chapters/11_conclusion}
+
+% =====================================================================
+% REFERENCES
+% =====================================================================
+\bibliographystyle{ieeetr}
+\bibliography{references}
+
+\end{document}

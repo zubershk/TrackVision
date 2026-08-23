@@ -1,0 +1,275 @@
+% =====================================================================
+% CHAPTER 5: METHODOLOGY
+% =====================================================================
+\chapter{Methodology}
+\label{ch:methodology}
+
+This chapter documents the complete implemented pipeline of TrackVision, from video acquisition to visualization. Every subsection corresponds to actual code in the repository.
+
+\section{System Overview}
+\label{sec:sys-overview}
+
+TrackVision follows a \textbf{tracking-by-detection} architecture with four Web Workers operating in parallel, coordinated by a main-thread vision engine loop (requestAnimationFrame). The high-level data flow is:
+
+\begin{center}
+\texttt{Video} $\to$ \texttt{OffscreenCanvas} $\to$ \texttt{Detection Workers} $\to$ \texttt{ReID Worker} $\to$ \texttt{Tracker Worker} $\to$ \texttt{State Store} $\to$ \texttt{UI}
+\end{center}
+
+Figure~\ref{fig:architecture} illustrates the worker architecture.
+
+\section{Browser Video Acquisition}
+\label{sec:video-acq}
+
+Video input is obtained via the standard \texttt{MediaDevices API}:
+
+\begin{lstlisting}[style=typescript, caption={Camera request in CameraHUD.tsx}]
+navigator.mediaDevices.getUserMedia({
+  video: { 
+    facingMode: 'environment', 
+    width: { ideal: 1280 }, 
+    height: { ideal: 720 } 
+  },
+  audio: false
+}).then(stream => {
+  videoRef.current.srcObject = stream;
+  videoRef.current.onloadedmetadata = () => videoRef.current?.play();
+});
+\end{lstlisting}
+
+The rear-facing camera (\texttt{facingMode: 'environment'}) is requested by default for mobile scenarios. On desktop, the user's default camera is used. Camera permission is required; errors surface as UI banners with HTTPS guidance for insecure origins.
+
+\section{Frame Capture and Letterboxing}
+\label{sec:frame-capture}
+
+Frames are captured using \texttt{OffscreenCanvas} for zero-main-thread overhead:
+
+\begin{lstlisting}[style=typescript, caption={Frame capture in useOffscreenCanvas.ts}]
+captureFrame(targetW: number, targetH: number): CapturedFrame | null {
+  const canvas = offscreenCanvasRef.current;
+  const video = videoRef.current;
+  if (!canvas || !video || video.readyState < 2) return null;
+
+  const scale = Math.min(targetW / video.videoWidth, targetH / video.videoHeight);
+  const newW = Math.round(video.videoWidth * scale);
+  const newH = Math.round(video.videoHeight * scale);
+  const offsetX = (targetW - newW) / 2;
+  const offsetY = (targetH - newH) / 2;
+
+  const ctx = canvas.getContext('2d');
+  ctx.clearRect(0, 0, targetW, targetH);
+  ctx.drawImage(video, offsetX, offsetY, newW, newH);
+
+  const imageData = ctx.getImageData(0, 0, targetW, targetH);
+  const buffer = imageData.data.buffer.slice(0); // copy for transfer
+
+  return { buffer, data: imageData.data, width: targetW, height: targetH,
+           originalWidth: video.videoWidth, originalHeight: video.videoHeight,
+           scale, offsetX, offsetY };
+}
+\end{lstlisting}
+
+Key properties:
+\begin{itemize}
+    \item \textbf{Letterboxing:} Aspect ratio preserved; padding equally distributed.
+    \item \textbf{Metadata:} \texttt{scale}, \texttt{offsetX}, \texttt{offsetY} enable mapping detection coordinates back to original video space.
+    \item \textbf{Transfer:} \texttt{ArrayBuffer} is transferred (detached) to workers via \texttt{postMessage}, avoiding copies.
+\end{itemize}
+
+\section{Preprocessing for Inference}
+\label{sec:preprocessing}
+
+Each worker receives the transferred buffer and performs planar conversion:
+
+\begin{lstlisting}[style=typescript, caption={Planar conversion in yoloDetectionWorker.ts}]
+const u8 = new Uint8Array(buffer);
+const inv255 = 1 / 255;
+for (let i = 0, p = 0; i < numPixels; i++, p += 4) {
+  planarData[rOffset + i] = u8[p] * inv255;
+  planarData[gOffset + i] = u8[p + 1] * inv255;
+  planarData[bOffset + i] = u8[p + 2] * inv255;
+}
+\end{lstlisting}
+
+For ReID (OSNet), crops are extracted from the letterboxed frame, resized to 256×128, and normalized with ImageNet statistics (mean=[0.485, 0.456, 0.406], std=[0.229, 0.224, 0.225]).
+
+\section{Object Detection}
+\label{sec:detection}
+
+Two detection paths are implemented:
+
+\subsection{Fast Mode: YOLOv8n}
+\label{sec:yolo-fast}
+\begin{itemize}
+    \item Model: \texttt{yolov8n.onnx} (12.8 MB, COCO-80)
+    \item Worker: \texttt{yoloDetectionWorker.ts}
+    \item Input: \texttt{float32[1, 3, 640, 640]}
+    \item Output: Transposed \texttt{[1, 84, 8400]} (84 = 4 bbox + 80 classes) or non-transposed
+    \item Postprocessing: Sigmoid calibration, class-aware NMS (IoU 0.45), coordinate mapping via \texttt{scale/offsetX/offsetY}
+\end{itemize}
+
+\subsection{Open-Vocabulary Mode: YOLO-World + CLIP}
+\label{sec:yolo-open}
+\begin{itemize}
+    \item Model: \texttt{yoloworld.onnx} (~418 MB) + \texttt{clip\_text\_encoder.onnx} (~254 MB)
+    \item Worker: \texttt{yoloWorldWorker.ts}
+    \item CLIP Tokenizer: \texttt{clipTokenizer.ts} (BPE, vocab/merges from \texttt{public/models/clip-tokenizer/})
+    \item Text Encoding: \texttt{``a photo of a \{concept\}''} $\to$ tokenize (int64[77]) $\to$ CLIP encoder (WASM) $\to$ L2-normalize $\to$ \texttt{text\_features [1, C, 512]}
+    \item YOLO-World Input: \texttt{images [1, 3, 640, 640]} + \texttt{text\_features [1, C, 512]}
+    \item Output: Post-sigmoid \texttt{scores [1, N, C]} + XYXY \texttt{boxes [1, N, 4]}
+    \item Postprocessing: \texttt{postprocessWorld} decodes scores/boxes in letterbox space
+    \item Lazy Loading: CLIP loads on first concept set; embeddings computed once per concept set
+\end{itemize}
+
+\section{Detection Filtering and Class-Aware NMS}
+\label{sec:nms}
+
+After detection, \textbf{class-aware NMS} runs on the main thread (\texttt{applyNMSWithClass} in \texttt{workerUtils.ts}):
+
+\begin{enumerate}
+    \item Group detections by \texttt{classId}.
+    \item Within each class, sort by confidence descending.
+    \item Iterate: keep highest, suppress others with IoU $> 0.45$.
+    \item Merge results across classes.
+\end{enumerate}
+
+This prevents cross-class suppression (e.g., a high-confidence ``person'' does not suppress a nearby ``laptop'').
+
+\section{ReID Feature Extraction}
+\label{sec:reid}
+
+ReID is \textbf{conditional} — only active when a valid OSNet model is loaded (\texttt{reidReady \&\& !reidIsFallback}).
+
+\begin{enumerate}
+    \item \textbf{Crop Mapping:} Video-space boxes $\to$ letterbox coordinates using \texttt{scale/offsetX/offsetY}.
+    \item \textbf{Batch-1 Inference:} Each crop processed sequentially (OSNet export rejects stacked batches).
+    \item \textbf{Preprocessing:} Resize 256×128, ImageNet mean/std, RGB $\to$ CHW.
+    \item \textbf{Inference:} \texttt{extractBatch} in \texttt{reidWorker.ts} returns 512-dim L2-normalized embedding per crop.
+    \item \textbf{Attachment:} Non-zero embeddings attached to detections if length matches.
+\end{enumerate}
+
+If OSNet is unavailable, the tracker falls back to IoU + center distance + class consistency only.
+
+\section{Track Prediction}
+\label{sec:track-pred}
+
+Before association, every active track predicts its next state via Kalman filter:
+
+\begin{lstlisting}[style=typescript, caption={Track prediction in tracker.ts}]
+predict(): BBox {
+  const predicted = this.kalman.predict();
+  this.bbox = predicted;
+  return predicted;
+}
+\end{lstlisting}
+
+The Kalman filter (\texttt{kalman.ts}) maintains a 6×6 covariance matrix with constant acceleration process noise.
+
+\section{Data Association}
+\label{sec:association}
+
+The core of ByteTrack++ is the \textbf{four-stage association} (\texttt{ByteTracker.update} in \texttt{tracker.ts}):
+
+\subsection{Stage 1: High-Confidence Association}
+Match detections with $\text{score} \ge \text{trackThresh}$ (capped at 0.4) against all existing tracks using Hungarian algorithm on combined cost matrix.
+
+\subsection{Stage 2: Low-Confidence Association}
+Match detections with $0.1 < \text{score} < \text{trackThresh}$ against only the \textit{unmatched} tracks from Stage 1.
+
+\subsection{Stage 3: New Track Creation}
+Unmatched high-confidence detections spawn new tracks (TENTATIVE state, new Kalman filter).
+
+\subsection{Stage 4: Missed Track Handling}
+Unmatched tracks increment \texttt{timeSinceUpdate}; if $> 5$ frames $\to$ LOST; if $> 30$ frames (\texttt{maxTimeLost}) $\to$ REMOVED.
+
+\subsection{Cost Matrix Composition}
+\label{sec:cost-matrix}
+For each track-detection pair, the combined cost is:
+
+\[
+\text{cost} = 
+\begin{cases}
+0.6 \cdot (1 - \text{IoU}) + 0.3 \cdot (1 - \text{cosine\_sim}) + 0.1 \cdot \text{class\_cost} + 0.1 \cdot \text{center\_cost} & \text{if embeddings exist} \\
+0.8 \cdot (1 - \text{IoU}) + 0.15 \cdot \text{center\_cost} + 0.05 \cdot \text{class\_cost} & \text{otherwise}
+\end{cases}
+\]
+
+Where:
+\begin{itemize}
+    \item $\text{class\_cost} = 0$ if same class, $0.4$ otherwise
+    \item $\text{center\_cost} = \min(1, \frac{\text{center\_dist}}{2 \cdot \max(\text{dims})})$
+    \item Gating: costs $> 1 - \text{matchThresh}$ (default 0.3) set to $\infty$ before Hungarian
+\end{itemize}
+
+\section{Track Lifecycle Management}
+\label{sec:lifecycle}
+
+Tracks transition through states:
+
+\begin{center}
+\texttt{TENTATIVE} $\xrightarrow{\text{hits} \ge 3 \text{ or } \text{confirmedHits} \ge 2}$ \texttt{CONFIRMED} $\xrightarrow{\text{timeSinceUpdate} > 5}$ \texttt{LOST} $\xrightarrow{\text{timeSinceUpdate} > 30}$ \texttt{REMOVED}
+\end{center}
+
+\begin{itemize}
+    \item \texttt{confirmedHits}: detections with $\text{score} \ge 0.7$
+    \item Recovery: LOST $\to$ TRACKED if re-associated within \texttt{maxTimeLost}
+    \item Label stabilization: Majority vote over last 10 class labels
+    \item Score smoothing: EMA $\alpha=0.3$ ($\text{score} \leftarrow 0.7 \cdot \text{old} + 0.3 \cdot \text{new}$)
+\end{itemize}
+
+\section{Track Merging (Split Identity Recovery)}
+\label{sec:merging}
+
+If two confirmed tracks of the \textit{same class} have $\text{IoU} > 0.5$ and appearance similarity $> 0.7$, the older track absorbs the younger (EMA embedding fusion, younger marked REMOVED).
+
+\section{EMA Smoothing and Interpolation}
+\label{sec:smoothing}
+
+\begin{itemize}
+    \item \textbf{BBox EMA:} $\alpha=0.7$ on \texttt{bbox} coordinates.
+    \item \textbf{Center EMA:} $\alpha=0.8$ on center points.
+    \item \textbf{Occlusion Interpolation:} Up to 5 frames of Kalman-predicted positions blended with smoothed bbox when \texttt{timeSinceUpdate} $> 0$.
+\end{itemize}
+
+\section{Output Rendering}
+\label{sec:rendering}
+
+The main thread renders tracking overlays on a canvas (\texttt{drawTrackingHUD} in \texttt{lib/draw.ts}):
+
+\begin{itemize}
+    \item Bounding boxes with track IDs, class labels, confidence.
+    \item Ghost mode: Fading trajectory trails (15 frames, opacity decay).
+    \item Follow mode: Camera locked to selected track, dimmed background.
+    \item Scene Map: 640×480 top-down density map with live track dots.
+    \item Timeline: Gantt-chart horizontal bars per track ID (5-min window).
+\end{itemize}
+
+\section{Telemetry Collection}
+\label{sec:telemetry}
+
+Per-frame latency breakdown collected in \texttt{useVisionEngine.ts}:
+
+\begin{itemize}
+    \item \texttt{preprocessMs}, \texttt{inferenceMs}, \texttt{postprocessMs}, \texttt{trackingMs}, \texttt{renderMs}, \texttt{frameMs}
+    \item \texttt{executionProvider} (WebNN/WebGPU/WebGL/WASM)
+    \item \texttt{fps} (rolling 500ms window)
+    \item History: 60-sample rolling buffers for latency/FPS charts
+\end{itemize}
+
+\section{Five-Minute Rolling History}
+\label{sec:history}
+
+The Zustand store (\texttt{store.ts}) maintains a sliding window:
+
+\begin{lstlisting}[style=typescript, caption={History pruning in store.ts}]
+const cutoffTime = frame.timestamp - state.maxHistoryMs; // 5 * 60 * 1000
+while (newFrames.length > 0 && newFrames[0].timestamp < cutoffTime) {
+  newFrames.shift();
+}
+\end{lstlisting}
+
+Track metadata (trajectories, distance, speed, bearing) is updated per frame and pruned to 300 history points per track.
+
+\section{Replay Mode}
+\label{sec:replay}
+
+When \texttt{isReplay=true}, the live loop pauses. \texttt{currentTime} scrubs through stored \texttt{frames[]}, rendering historical frames with full track state reconstruction.

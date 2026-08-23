@@ -1,0 +1,140 @@
+% =====================================================================
+% CHAPTER 3: LITERATURE REVIEW
+% =====================================================================
+\chapter{Literature Review}
+\label{ch:literature}
+
+\section{Traditional Object Tracking}
+\label{sec:traditional-tracking}
+
+Before deep learning, tracking relied on hand-crafted features and probabilistic filters. The \textbf{Kalman Filter} \cite{kalman1960new} provides optimal state estimation for linear Gaussian systems. For visual tracking, the \textbf{Mean Shift} algorithm \cite{comaniciu2002meanshift} iteratively seeks the mode of a target's color histogram. \textbf{Optical flow} methods (Lucas-Kanade \cite{lucas1981iterative}, Farnebäck \cite{farneback2003twoframe}) estimate dense or sparse motion fields between frames. These approaches are computationally efficient but struggle with appearance changes, occlusion, and long-term identity maintenance.
+
+\section{Tracking-by-Detection Paradigm}
+\label{sec:tracking-by-detection}
+
+Modern MOT predominantly follows the \textbf{tracking-by-detection} paradigm \cite{bewley2016sort}: an independent object detector runs per frame, and a tracker associates detections across time. This decouples detection quality from tracking logic and allows plug-and-play detector upgrades.
+
+\section{SORT and Deep SORT}
+\label{sec:sort-deepsort}
+
+\textbf{SORT (Simple Online and Realtime Tracking)} \cite{bewley2016sort} combines a Kalman filter (constant velocity model) with Hungarian assignment based on IoU. It is fast and effective for low occlusion but lacks appearance information, leading to ID switches when objects cross or are occluded.
+
+\textbf{Deep SORT} \cite{wojke2017deepsort} extends SORT by integrating a deep appearance descriptor (a CNN trained on person re-identification). The association cost fuses IoU and cosine distance between embeddings. This significantly reduces ID switches but increases computational cost.
+
+\section{ByteTrack}
+\label{sec:bytetrack}
+
+\textbf{ByteTrack} \cite{zhang2021bytetrack} observes that low-confidence detections (often discarded by SORT/Deep SORT) contain valuable information for tracking occluded or small objects. It introduces a two-stage association:
+\begin{enumerate}
+    \item High-confidence detections ($\ge$ trackThresh) matched with all tracks.
+    \item Low-confidence detections matched only with unmatched tracks.
+\end{enumerate}
+This simple modification achieves state-of-the-art MOTA on MOT17 without appearance features. ByteTrack also uses a more robust Kalman filter and track lifecycle management.
+
+\section{BoT-SORT and StrongSORT}
+\label{sec:botsort-strongsort}
+
+\textbf{BoT-SORT} \cite{aharon2022botsort} improves ByteTrack with camera motion compensation (CMC) and a more sophisticated appearance model. \textbf{StrongSORT} \cite{du2023strongsort} combines BoT-SORT's improvements with an enhanced ReID model (OSNet-AIN) and adaptive appearance weighting. Both achieve higher MOTA/IDF1 at increased complexity.
+
+\section{YOLO Family}
+\label{sec:yolo-family}
+
+\begin{itemize}
+    \item \textbf{YOLOv1--v3} \cite{redmon2016yolo,redmon2017yolo9000,redmon2018yolov3}: Progressive improvements in speed/accuracy.
+    \item \textbf{YOLOv4} \cite{bochkovskiy2020yolov4}: CSPDarknet53 backbone, PANet neck, Mish activation.
+    \item \textbf{YOLOv5} \cite{jocher2021yolov5}: PyTorch reimplementation, widely adopted, export-friendly.
+    \item \textbf{YOLOv8} \cite{jocher2023ultralytics}: Unified architecture for detection/segmentation/pose; anchor-free; improved head.
+\end{itemize}
+
+YOLOv8n (nano) is the smallest variant ($\sim$3.2M parameters, 12.8 MB ONNX), suitable for real-time edge/browser deployment.
+
+\section{YOLO-World: Open-Vocabulary Detection}
+\label{sec:yoloworld}
+
+Traditional detectors are limited to fixed training vocabularies (e.g., COCO-80). \textbf{YOLO-World} \cite{cheng2024yoloworld} enables \textit{open-vocabulary} detection by conditioning on text embeddings. It uses a \textbf{RepVL-PAN} neck that fuses visual features with CLIP \cite{radford2021clip} text embeddings. At inference, user-supplied concepts are encoded by CLIP's text encoder and fed as \texttt{text\_features} to the detector. This enables zero-shot detection of arbitrary categories without retraining.
+
+\section{CLIP: Contrastive Language-Image Pre-training}
+\label{sec:clip}
+
+\textbf{CLIP} \cite{radford2021clip} learns joint image-text representations by contrastive pre-training on 400M image-text pairs. The text encoder (Transformer) maps tokenized captions to 512-dim embeddings; the image encoder (ViT or ResNet) maps images to the same space. Zero-shot classification uses cosine similarity between image and text embeddings. CLIP ViT-B/32 uses a Vision Transformer (ViT-B/32) image encoder and a 12-layer Transformer text encoder.
+
+\section{OSNet: Omni-Scale Network for ReID}
+\label{sec:osnet}
+
+\textbf{OSNet} \cite{zhou2019osnet} is a lightweight CNN for person re-identification. Its Omni-Scale residual block captures features at multiple spatial scales simultaneously. OSNet x1.0 ($\sim$2.2M parameters) produces 512-dim embeddings and achieves strong accuracy on Market-1501 / DukeMTMC-reID. The ONNX export (Axelera mirror) expects 256×128 crops with ImageNet normalization.
+
+\section{Kalman Filter in Visual Tracking}
+\label{sec:kf-tracking}
+
+The Kalman filter \cite{kalman1960new} is the workhorse of MOT state estimation. For 2D bounding box tracking, the state vector typically includes position, velocity, and optionally size:
+\[
+\mathbf{x} = [x, y, v_x, v_y, w, h]^T
+\]
+The constant velocity model assumes $x_{t+1} = x_t + v_x \Delta t$. Process noise models acceleration uncertainty; measurement noise models detection jitter. Full covariance (6×6) propagation captures correlations between state variables (e.g., position-velocity coupling).
+
+\section{Hungarian Algorithm for Data Association}
+\label{sec:hungarian}
+
+The assignment problem (minimize total cost of matching tracks to detections) is solved optimally in $O(n^3)$ by the \textbf{Hungarian algorithm} (Kuhn-Munkres) \cite{kuhn1955hungarian,munkres1957algorithms}. The cost matrix typically uses $1 - \text{IoU}$ or a fusion of IoU, appearance distance, and class consistency. Gating (thresholding impossible assignments) reduces the problem size.
+
+\section{Browser-Based Inference}
+\label{sec:browser-inference}
+
+\textbf{ONNX Runtime Web} \cite{ortweb} enables running ONNX models in browsers via WebAssembly (WASM), WebGL, WebGPU, and WebNN execution providers. Key milestones:
+\begin{itemize}
+    \item WASM SIMD (2020): Near-native speed for CPU inference.
+    \item WebGL (2018): GPU texture-based compute.
+    \item WebGPU (2021): Modern GPU compute API, compute shaders, lower overhead.
+    \item WebNN (2023): Hardware-accelerated ML abstraction layer.
+\end{itemize}
+Frameworks like \texttt{transformers.js} \cite{xenova} demonstrate BERT, CLIP, Whisper running entirely in-browser.
+
+\section{Comparison of MOT Methods}
+\label{sec:comparison}
+
+\begin{table}[htbp]
+\centering
+\caption{Comparison of MOT methods relevant to this work. \textbf{Bold} indicates methods implemented in TrackVision.}
+\label{tab:mot-comparison}
+\begin{tabular}{@{}lcccccc@{}}
+\toprule
+\textbf{Method} & \textbf{Association} & \textbf{Appearance} & \textbf{Low-conf Dets} & \textbf{Camera Motion} & \textbf{Implemented} \\
+\midrule
+SORT \cite{bewley2016sort} & IoU + Hungarian & \xmark & \xmark & \xmark & \xmark \\
+Deep SORT \cite{wojke2017deepsort} & IoU + App + Hungarian & \cmark (ReID) & \xmark & \xmark & \xmark \\
+\textbf{ByteTrack} \cite{zhang2021bytetrack} & \textbf{IoU + Hungarian} & \xmark & \cmark (2-stage) & \xmark & \cmark \\
+BoT-SORT \cite{aharon2022botsort} & IoU + App + Hungarian & \cmark & \cmark & \cmark (CMC) & \xmark \\
+StrongSORT \cite{du2023strongsort} & IoU + App + Hungarian & \cmark (OSNet-AIN) & \cmark & \cmark (CMC) & \xmark \\
+\textbf{TrackVision (ByteTrack++)} & \textbf{IoU + App + Class + Center} & \cmark (OSNet x1.0) & \cmark (2-stage) & \xmark & \cmark \\
+\bottomrule
+\end{tabular}
+\end{table}
+
+\section{Theoretical vs. Implemented}
+\label{sec:theoretical-vs-implemented}
+
+\begin{itemize}
+    \item \textbf{Implemented in TrackVision:} ByteTrack two-stage association, full 6×6 covariance Kalman, Hungarian assignment, OSNet ReID with EMA fusion, track merging, EMA smoothing, occlusion interpolation, YOLOv8n detection, YOLO-World + CLIP open-vocabulary path.
+    \item \textbf{Literature only (not implemented):} BoT-SORT (CMC), StrongSORT (adaptive appearance), Deep SORT (original ReID), OC-SORT \cite{cao2023ocsort}, MotionTrack \cite{chen2023motiontrack}, TransTrack \cite{sun2020transtrack}.
+    \item \textbf{Adapted for browser:} Kalman filter (TypeScript, Gaussian elimination), Hungarian (TypeScript, square padding), OSNet (batch-1 inference due to export constraints), CLIP tokenizer (BPE in TypeScript).
+\end{itemize}
+
+\section{Key References}
+\label{sec:key-refs}
+
+The following original research papers form the theoretical foundation of this work:
+
+\begin{enumerate}
+    \item \textbf{ByteTrack:} Zhang et al., ``ByteTrack: Multi-Object Tracking by Associating Every Detection Box,'' ECCV 2022 \cite{zhang2021bytetrack}.
+    \item \textbf{YOLOv8:} Jocher et al., ``Ultralytics YOLOv8,'' 2023 \cite{jocher2023ultralytics}.
+    \item \textbf{YOLO-World:} Cheng et al., ``YOLO-World: Real-Time Open-Vocabulary Object Detection,'' CVPR 2024 \cite{cheng2024yoloworld}.
+    \item \textbf{OSNet:} Zhou et al., ``Omni-Scale Feature Learning for Person Re-Identification,'' ICCV 2019 \cite{zhou2019osnet}.
+    \item \textbf{CLIP:} Radford et al., ``Learning Transferable Visual Models From Natural Language Supervision,'' ICML 2021 \cite{radford2021clip}.
+    \item \textbf{SORT:} Bewley et al., ``Simple Online and Realtime Tracking,'' ICIP 2016 \cite{bewley2016sort}.
+    \item \textbf{Deep SORT:} Wojke et al., ``Simple Online and Realtime Tracking with a Deep Association Metric,'' ICIP 2017 \cite{wojke2017deepsort}.
+    \item \textbf{Kalman Filter:} Kalman, ``A New Approach to Linear Filtering and Prediction Problems,'' 1960 \cite{kalman1960new}.
+    \item \textbf{Hungarian Algorithm:} Kuhn, ``The Hungarian Method for the Assignment Problem,'' 1955 \cite{kuhn1955hungarian}.
+    \item \textbf{ONNX Runtime Web:} Microsoft, ``ONNX Runtime Web,'' 2024 \cite{ortweb}.
+\end{enumerate}
+
+All references are formatted in IEEE style and listed in \texttt{references.bib}.

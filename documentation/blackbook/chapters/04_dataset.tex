@@ -1,0 +1,115 @@
+% =====================================================================
+% CHAPTER 4: DATASET DESCRIPTION / DETAILS
+% =====================================================================
+\chapter{Dataset Description / Details}
+\label{ch:dataset}
+
+\section{Overview}
+\label{sec:dataset-overview}
+
+\textbf{No formal benchmark dataset is used by the current implementation of TrackVision.} The system is designed for real-time inference on live camera streams or user-provided video input, not for offline evaluation on standardized MOT benchmarks (MOT17 \cite{milan2016mot16}, MOT20 \cite{dendorfer2020mot20}, KITTI \cite{geiger2012kitti}, TAO \cite{dave2020tao}, DanceTrack \cite{sun2022dancetrack}).
+
+This design choice reflects the project's primary goal: \textbf{a deployable, client-side MOT application} rather than a benchmark submission. Consequently, standardized quantitative metrics (MOTA, IDF1, HOTA, ID switches) cannot be computed and are not reported in this work.
+
+\section{Input Sources}
+\label{sec:input-sources}
+
+TrackVision accepts two input modalities:
+
+\begin{enumerate}
+    \item \textbf{Live Camera Stream:} Captured via \texttt{navigator.mediaDevices.getUserMedia()} with constraints \texttt{\{ video: \{ facingMode: 'environment', width: \{ ideal: 1280 \}, height: \{ ideal: 720 \} \}, audio: false \}}. The rear-facing camera is preferred for mobile scenarios.
+    \item \textbf{User-Provided Video Files:} The application supports drag-and-drop or file selection of browser-compatible video formats (MP4, WebM, MOV, etc.). The \texttt{<video>} element loads the file via \texttt{URL.createObjectURL()}.
+\end{enumerate}
+
+Both sources feed into the same processing pipeline (Figure~\ref{fig:pipeline}).
+
+\section{Video Characteristics}
+\label{sec:video-characteristics}
+
+Since the input is user-dependent, the following parameters are \textit{not fixed} but are handled dynamically by the pipeline:
+
+\begin{table}[htbp]
+\centering
+\caption{Input video parameter handling}
+\label{tab:video-params}
+\begin{tabular}{@{}ll@{}}
+\toprule
+\textbf{Parameter} & \textbf{Handling} \\
+\midrule
+Resolution & Variable (camera: up to 1280×720; file: any); letterboxed to 640×640 internally \\
+Frame Rate & Variable (typically 30 FPS); tracker assumes $\Delta t = 1/30$ s \\
+Color Space & RGB (browser canvas); converted to CHW float32 for inference \\
+Aspect Ratio & Preserved via letterboxing (padding); scale/offset metadata retained \\
+Duration & Unlimited (5-minute rolling history window for storage) \\
+\bottomrule
+\end{tabular}
+\end{table}
+
+\section{Preprocessing Pipeline}
+\label{sec:preprocessing}
+
+Every frame undergoes the following deterministic preprocessing before inference:
+
+\begin{enumerate}
+    \item \textbf{Capture:} \texttt{OffscreenCanvas.drawImage(video, 0, 0, 640, 640)} with letterboxing (aspect-preserving fit with padding).
+    \item \textbf{Metadata:} The capture returns \texttt{scale} (min(640/w, 640/h)), \texttt{offsetX}, \texttt{offsetY} (padding offsets).
+    \item \textbf{Planar Conversion:} RGBA $\to$ float32 CHW (3 × 640 × 640), normalized by 1/255.
+    \item \textbf{Buffer Transfer:} \texttt{ArrayBuffer} transferred to Web Workers (detached, zero-copy).
+\end{enumerate}
+
+This preprocessing is implemented in \texttt{src/hooks/useOffscreenCanvas.ts} and the detection workers.
+
+\section{Object Classes}
+\label{sec:object-classes}
+
+\begin{itemize}
+    \item \textbf{Fast Mode (YOLOv8n):} 80 fixed COCO classes (\texttt{COCO\_CLASSES} in \texttt{src/workers/workerUtils.ts}). Examples: person, bicycle, car, motorbike, bus, truck, traffic light, dog, cat, laptop, phone, bottle, cup, chair, book, clock, etc.
+    \item \textbf{Open Mode (YOLO-World):} Dynamic, user-defined concepts. The user enters comma-separated text prompts (e.g., ``laptop, phone, headphones, water bottle''). Each concept is formatted as \texttt{``a photo of a \{concept\}"}, tokenized by the in-browser CLIP BPE tokenizer, and encoded by the CLIP text encoder to produce \texttt{text\_features [1, C, 512]}.
+\end{itemize}
+
+\section{Annotations}
+\label{sec:annotations}
+
+\textbf{No ground-truth annotations are available.} The system operates in a purely \textit{inference-only} mode. There is no training, validation, or test split. This is a fundamental limitation for quantitative MOT evaluation.
+
+\section{Test Videos Used During Development}
+\label{sec:test-videos}
+
+During manual development and qualitative testing, the following video sources were used:
+
+\begin{itemize}
+    \item Live webcam (laptop integrated camera, USB webcam).
+    \item Mobile phone camera (via \texttt{dev:https} LAN access).
+    \item Sample video: \texttt{one-by-one-person-detection.mp4} (Intel IoT DevKit sample, $\sim$3.3 MB, 1920×1080, 30 FPS, single person walking).
+\end{itemize}
+
+These are \textbf{not benchmark datasets} and were used solely for functional verification and UI testing.
+
+\section{Summary Table}
+\label{sec:dataset-summary}
+
+\begin{table}[htbp]
+\centering
+\caption{Dataset description summary}
+\label{tab:dataset-summary}
+\begin{tabular}{@{}ll@{}}
+\toprule
+\textbf{Parameter} & \textbf{Value} \\
+\midrule
+Dataset Name & \textit{None (live camera / user video only)} \\
+Source & Browser \texttt{getUserMedia()} / File input \\
+Video Count & Unlimited (user-dependent) \\
+Resolution & Variable; processed at 640×640 letterboxed \\
+FPS & Variable; tracker $\Delta t = 1/30$ s \\
+Object Classes & COCO-80 (fast) / User-defined (open) \\
+Annotation Format & None (inference only) \\
+Train/Test Split & N/A \\
+Ground Truth & Not available \\
+\bottomrule
+\end{tabular}
+\end{table}
+
+\section{Implication for Evaluation}
+\label{sec:eval-implication}
+
+The absence of a benchmark dataset with ground-truth trajectories means that \textbf{standardized MOT metrics cannot be computed}. Chapter~\ref{ch:results} discusses the evaluation methodology actually used (unit tests, microbenchmarks, qualitative observation) and proposes a future work path for standardized evaluation.

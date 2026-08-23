@@ -1,0 +1,180 @@
+% =====================================================================
+% FRONT MATTER
+% =====================================================================
+
+% ---------------------------------------------------------------------
+% COVER PAGE
+% ---------------------------------------------------------------------
+\begin{titlepage}
+    \centering
+    \vspace*{2cm}
+    
+    {\Huge \bfseries \color{trackvisiondark} TrackVision}\\[0.5cm]
+    {\LARGE \color{trackvisionblue} Real-time Client-Side Multiple Object Tracking in Video}\\[2cm]
+    
+    % \includegraphics[width=0.4\textwidth]{figures/01-landing-page.png}\\[2cm]
+    
+    {\large \bfseries Unit 2 Computer Vision Mini Project}\\[1cm]
+    
+    {\large Submitted in partial fulfillment of the requirements for the degree of}\\[0.5cm]
+    {\large Bachelor of Technology in Computer Science and Engineering}\\[2cm]
+    
+    \begin{tabular}{ll}
+        \bfseries Student: & [Student Name] \\
+        \bfseries Roll Number: & [Roll Number] \\
+        \bfseries Branch: & Computer Science and Engineering \\
+        \bfseries Semester: & [Semester] \\
+        \bfseries Academic Year: & 2025--2026 \\
+        \bfseries Submission Date: & 12 September 2026 \\
+        \bfseries Guide: & [Guide Name] \\
+        \bfseries Department: & Department of Computer Science and Engineering \\
+        \bfseries Institute: & [Institute Name] \\
+    \end{tabular}
+    
+    \vfill
+    
+    {\color{trackvisiongray} \textit{TrackVision -- Precision Object Intelligence}}
+    
+    \vspace{1cm}
+\end{titlepage}
+
+% ---------------------------------------------------------------------
+% CERTIFICATE
+% ---------------------------------------------------------------------
+\chapter*{Certificate}
+\thispagestyle{plain}
+\addcontentsline{toc}{chapter}{Certificate}
+
+\vspace{2cm}
+
+\noindent This is to certify that the project report entitled \textbf{``TrackVision: Real-time Client-Side Multiple Object Tracking in Video''} submitted by \textbf{[Student Name]} (Roll No: [Roll Number]) in partial fulfillment of the requirements for the award of the degree of \textbf{Bachelor of Technology in Computer Science and Engineering} is a bonafide record of work carried out by him/her under my supervision and guidance.
+
+\vspace{1.5cm}
+
+\noindent The project represents the student's own work and has not been submitted elsewhere for any other degree or diploma.
+
+\vspace{2cm}
+
+\begin{tabular}{p{7cm} p{7cm}}
+    \hrulefill & \hrulefill \\
+    \textbf{[Guide Name]} & \textbf{[Head of Department]} \\
+    Project Guide & Department of CSE \\
+    Department of CSE & [Institute Name] \\
+    [Institute Name] & \\
+    Date: \today & Date: \today \\
+\end{tabular}
+
+\newpage
+
+% ---------------------------------------------------------------------
+% DECLARATION
+% ---------------------------------------------------------------------
+\chapter*{Declaration}
+\thispagestyle{plain}
+\addcontentsline{toc}{chapter}{Declaration}
+
+\vspace{2cm}
+
+\noindent I, \textbf{[Student Name]}, Roll Number \textbf{[Roll Number]}, student of \textbf{Bachelor of Technology in Computer Science and Engineering}, hereby declare that the project report entitled \textbf{``TrackVision: Real-time Client-Side Multiple Object Tracking in Video''} is an original work carried out by me under the guidance of \textbf{[Guide Name]}, Department of Computer Science and Engineering, \textbf{[Institute Name]}.
+
+\vspace{1cm}
+
+\noindent This work has not been submitted to any other university or institution for the award of any degree or diploma. All sources of information used in this report have been duly acknowledged.
+
+\vspace{2cm}
+
+\noindent \hrulefill \\
+\textbf{[Student Name]} \\
+Roll No: [Roll Number] \\
+Date: \today \\
+Place: [City]
+
+\newpage
+
+% ---------------------------------------------------------------------
+% ABSTRACT
+% ---------------------------------------------------------------------
+\chapter*{Abstract}
+\thispagestyle{plain}
+\addcontentsline{toc}{chapter}{Abstract}
+
+\vspace{1cm}
+
+\noindent \textbf{Multiple Object Tracking (MOT)} is a fundamental computer vision task that extends object detection by maintaining consistent object identities across consecutive video frames. Traditional MOT systems typically operate on powerful servers with GPU acceleration, requiring video uploads and introducing latency, privacy concerns, and bandwidth costs.
+
+\vspace{0.5cm}
+
+\noindent This project presents \trackvision, a fully client-side MOT system that runs entirely within a web browser using \onnxweb for hardware-accelerated inference. The system implements a custom \bytetrack algorithm with a full 6x6 covariance Kalman filter, Hungarian data association, and optional OSNet x1.0 appearance-based re-identification. Two detection modes are supported: a fast path using YOLOv8n (COCO-80 classes, 12.8 MB) and an open-vocabulary path using YOLO-World with CLIP ViT-B/32 text embeddings computed in-browser.
+
+\vspace{0.5cm}
+
+\noindent The architecture employs four Web Workers (YOLO detection, YOLO-World, ReID, Tracker) communicating via a typed message protocol, with the main thread handling class-aware NMS, visualization, and state management via Zustand. Video input is captured via \texttt{OffscreenCanvas} at 640x640 letterboxed resolution. The system achieves sub-millisecond JavaScript-side tracking overhead (0.31--1.04 ms/frame at 5--20 detections) and provides real-time telemetry (FPS, latency breakdown, execution provider).
+
+\vspace{0.5cm}
+
+\noindent \textbf{Key contributions:} (1) A production-grade client-side MOT pipeline with zero server dependencies, (2) Dual detection modes with in-browser CLIP text encoding, (3) Custom TypeScript ByteTrack++ with full covariance Kalman filtering and appearance fusion, (4) Comprehensive UI with Ghost/Follow/Replay modes, 5-minute history, and analytics, (5) 49 unit tests validating core algorithms, (6) Static deployment with COOP/COEP headers for WebGPU/SharedArrayBuffer support.
+
+\vspace{0.5cm}
+
+\noindent \textbf{Limitations:} No formal benchmark dataset is used; standardized MOT metrics (MOTA, IDF1, HOTA) are not computed. Evaluation consists of implementation-level unit tests, microbenchmarks, and qualitative observation. Future work includes MOTChallenge evaluation integration and video file upload support.
+
+\vspace{1cm}
+
+\noindent \textbf{Keywords:} Multiple Object Tracking, ByteTrack, YOLOv8, YOLO-World, Kalman Filter, Hungarian Algorithm, OSNet, CLIP, ONNX Runtime Web, WebGPU, Client-Side Inference
+
+\newpage
+
+% ---------------------------------------------------------------------
+% ACKNOWLEDGEMENT
+% ---------------------------------------------------------------------
+\chapter*{Acknowledgement}
+\thispagestyle{plain}
+\addcontentsline{toc}{chapter}{Acknowledgement}
+
+\vspace{2cm}
+
+\noindent I would like to express my sincere gratitude to all those who have contributed to the successful completion of this project.
+
+\vspace{1cm}
+
+\noindent First and foremost, I am deeply grateful to my project guide \textbf{[Guide Name]} for their invaluable guidance, constant encouragement, and constructive feedback throughout the project. Their expertise and insights were instrumental in shaping the technical direction of this work.
+
+\vspace{1cm}
+
+\noindent I extend my thanks to \textbf{[Head of Department]}, Head of the Department of Computer Science and Engineering, for providing the necessary infrastructure and support.
+
+\vspace{1cm}
+
+\noindent I am thankful to the faculty members of the Department of Computer Science and Engineering for their academic guidance and for creating an environment conducive to learning and innovation.
+
+\vspace{1cm}
+
+\noindent This project stands on the shoulders of giants in the computer vision and open-source communities. I acknowledge the authors and maintainers of:
+
+\vspace{0.5cm}
+
+\begin{itemize}
+    \item \textbf{ByteTrack} -- YOLOX/ByteTrack \cite{zhang2021bytetrack}
+    \item \textbf{YOLOv8} -- Ultralytics \cite{jocher2023ultralytics}
+    \item \textbf{YOLO-World} -- AILab-CVC/YOLO-World \cite{cheng2024yoloworld}
+    \item \textbf{OSNet} -- Kaiyang Zhou \cite{zhou2019osnet}
+    \item \textbf{CLIP} -- OpenAI \cite{radford2021clip}
+    \item \textbf{ONNX Runtime Web} -- Microsoft \cite{ortweb}
+    \item \textbf{React, Vite, Tailwind CSS, Zustand, Recharts} -- Respective open-source communities
+\end{itemize}
+
+\vspace{1cm}
+
+\noindent Special thanks to the developers of \texttt{onnxruntime-web}, \texttt{wkentaro/yolo-world-onnx}, and \texttt{Xenova/transformers.js} for providing the ONNX models and tokenizer assets that make in-browser open-vocabulary detection possible.
+
+\vspace{1cm}
+
+\noindent Finally, I thank my peers and family for their unwavering support and patience during the long hours of development and documentation.
+
+\vspace{2cm}
+
+\noindent \hrulefill \\
+\textbf{[Student Name]} \\
+Roll No: [Roll Number]
+
+\newpage

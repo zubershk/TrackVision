@@ -1,0 +1,33 @@
+\babel@toc {english}{}\relax 
+\addvspace {10\p@ }
+\addvspace {10\p@ }
+\addvspace {10\p@ }
+\addvspace {10\p@ }
+\addvspace {10\p@ }
+\addvspace {10\p@ }
+\addvspace {10\p@ }
+\addvspace {10\p@ }
+\contentsline {figure}{\numberline {8.1}{\ignorespaces TrackVision Landing Page -- Hero section, Feature Grid, Open Vision Playground, Performance Comparison, Use Cases, Code Quickstart, FAQ, and CTA Banner. Full-page scroll capture.}}{48}{figure.caption.12}%
+\contentsline {figure}{\numberline {8.2}{\ignorespaces Command Center -- Initial state after clicking ``Launch Command Center''. Shows top navigation (Live, Tracks, Vision, History, Scene, Analytics), center viewport with ``Start Tracking'' button, and Engine Thinking Stream pill. Models not yet initialized.}}{49}{figure.caption.13}%
+\contentsline {figure}{\numberline {8.3}{\ignorespaces Command Center -- Ready state after model initialization (YOLOv8n loaded). ``Start Tracking'' button enabled, telemetry stream active, Live badge shows standby FPS.}}{49}{figure.caption.14}%
+\contentsline {figure}{\numberline {8.4}{\ignorespaces Vision Panel (Detection Engine) -- Fast Mode (YOLOv8n, COCO-80) vs Open Mode (YOLO-World + CLIP) selector. Open mode shows concepts input textarea with comma-separated prompts. Runtime fallback status shows execution provider.}}{49}{figure.caption.15}%
+\contentsline {figure}{\numberline {8.5}{\ignorespaces Analytics Panel (Settings tab) -- Real-time telemetry cards (FPS, frame time, inference latency, tracking latency), object volume AreaChart, class distribution BarChart. Updates live during tracking.}}{49}{figure.caption.16}%
+\contentsline {figure}{\numberline {8.6}{\ignorespaces Track Inspector (Tracks tab) -- Active tracks list with track ID, class label, confidence score, status (NEW/TRACKED/LOST), and selection controls. Click to enable Follow mode.}}{50}{figure.caption.17}%
+\contentsline {figure}{\numberline {8.7}{\ignorespaces Scene Map (Scene tab) -- 640x480 top-down spatial density map with live track position dots, color-coded by track ID. Updates in real-time during tracking.}}{50}{figure.caption.18}%
+\contentsline {figure}{\numberline {8.8}{\ignorespaces Timeline (History tab) -- Gantt-chart style horizontal bars per track ID, 5-minute sliding window, variable playback speeds (0.5x, 1x, 2x, 4x), scrubber for frame-perfect seek.}}{50}{figure.caption.19}%
+\contentsline {figure}{\numberline {8.9}{\ignorespaces Command Palette -- Activated via Ctrl+K. Quick actions: Start/Stop Tracking, Toggle Ghost Mode, Toggle Follow Mode, Clear History, Switch Vision Mode, Open Settings.}}{50}{figure.caption.20}%
+\contentsline {figure}{\numberline {8.10}{\ignorespaces Mobile Responsive View (375x667) -- Bottom navigation bar (Live, Tracks, History, Scene, Vision, Analytics), stacked panels, touch-optimized controls.}}{51}{figure.caption.21}%
+\contentsline {figure}{\numberline {8.11}{\ignorespaces Full Desktop Command Center -- Live view with camera placeholder, left sidebar (Tracks panel shown), top navigation with telemetry (FPS, latency), Engine Thinking Stream, corner controls (Ghost Mode, Follow Mode), bottom live HUD.}}{52}{figure.caption.22}%
+\contentsline {figure}{\numberline {8.12}{\ignorespaces Early detection frame -- YOLOv8n output showing bounding boxes, COCO class labels, and confidence scores. No tracking IDs assigned yet (first frame).}}{52}{figure.caption.23}%
+\contentsline {figure}{\numberline {8.13}{\ignorespaces Three or more objects tracked simultaneously with persistent integer IDs, class labels, and confidence scores. IDs remain stable across frames.}}{52}{figure.caption.24}%
+\contentsline {figure}{\numberline {8.14}{\ignorespaces Identity continuity demonstration -- same physical object maintains the same track ID across multiple frames despite motion and minor appearance changes.}}{52}{figure.caption.25}%
+\contentsline {figure}{\numberline {8.15}{\ignorespaces Ghost mode enabled -- 15-frame fading trajectory trails with opacity decay, showing historical path of each tracked object.}}{52}{figure.caption.26}%
+\contentsline {figure}{\numberline {8.16}{\ignorespaces Follow mode enabled -- camera viewport locked to selected track, background dimmed, selected track highlighted with persistent ID and telemetry.}}{52}{figure.caption.27}%
+\contentsline {figure}{\numberline {8.17}{\ignorespaces Object temporarily occluded -- track maintains ID via Kalman prediction (interpolation frames), reappears with same ID after occlusion.}}{52}{figure.caption.28}%
+\contentsline {figure}{\numberline {8.18}{\ignorespaces Multiple overlapping objects in close proximity -- distinct IDs maintained, track merging activates only when IoU > 0.5, same class, and appearance similarity > 0.7.}}{52}{figure.caption.29}%
+\contentsline {figure}{\numberline {8.19}{\ignorespaces Track re-acquired after prolonged occlusion -- OSNet appearance embedding fusion enables correct ID assignment despite spatial gap. Requires OSNet model loaded.}}{52}{figure.caption.30}%
+\contentsline {figure}{\numberline {8.20}{\ignorespaces Real-time Telemetry -- FPS history (line chart), latency breakdown (stacked area: preprocess, inference, postprocess, tracking, render), object count per frame, class distribution bar chart. Updates every frame during tracking.}}{53}{figure.caption.31}%
+\addvspace {10\p@ }
+\contentsline {figure}{\numberline {9.1}{\ignorespaces Tracking pipeline latency scales sub-linearly with detection count. Model inference (not shown) dominates end-to-end frame time.}}{56}{figure.caption.35}%
+\addvspace {10\p@ }
+\addvspace {10\p@ }

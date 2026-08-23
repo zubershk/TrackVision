@@ -13,7 +13,7 @@
 
 **Real-time, client-side multi-object tracking with ByteTrack temporal persistence — running entirely in your browser.**
 
-[Live Demo](https://trackvision.dev) • [Documentation](https://github.com/zubershk/TrackVision/wiki) • [Report Bug](https://github.com/zubershk/TrackVision/issues) • [Request Feature](https://github.com/zubershk/TrackVision/issues/new)
+[Live Demo](https://traackvision.netlify.app/) • [Documentation](https://github.com/zubershk/TrackVision#getting-started) • [Report Bug](https://github.com/zubershk/TrackVision/issues/new?labels=bug) • [Request Feature](https://github.com/zubershk/TrackVision/issues/new?labels=enhancement)
 
 </div>
 
